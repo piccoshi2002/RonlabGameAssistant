@@ -1,0 +1,67 @@
+package com.ronlab.rga.gui;
+
+import com.ronlab.rga.RGA;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+
+public class ActionHandler {
+
+    private final RGA plugin;
+
+    public ActionHandler(RGA plugin) {
+        this.plugin = plugin;
+    }
+
+    public void handle(Player player, List<String> actions) {
+        if (actions == null || actions.isEmpty()) return;
+
+        for (String action : actions) {
+            action = action.trim();
+
+            if (action.startsWith("rga:")) {
+                handleRGAAction(player, action.substring(4).trim());
+            } else if (action.startsWith("console:")) {
+                String command = action.substring(8).trim().replace("%player%", player.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            } else if (action.startsWith("player:")) {
+                String command = action.substring(7).trim().replace("%player%", player.getName());
+                player.performCommand(command);
+            } else if (!action.isEmpty()) {
+                // Default: treat as console command for backwards compatibility
+                String command = action.replace("%player%", player.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            }
+        }
+    }
+
+    private void handleRGAAction(Player player, String action) {
+        if (action.startsWith("open_menu ")) {
+            String menuName = action.substring(10).trim();
+            player.closeInventory();
+            // Small delay to prevent inventory glitch
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> plugin.getMenuManager().openMenu(player, menuName), 1L);
+
+        } else if (action.equals("last_location")) {
+            player.closeInventory();
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> plugin.getLocationTracker().teleportToLastLocation(player), 1L);
+
+        } else if (action.startsWith("tp ")) {
+            String worldName = action.substring(3).trim();
+            player.closeInventory();
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> plugin.getWorldManager().teleportToWorld(player, worldName), 1L);
+
+        } else if (action.equals("close")) {
+            player.closeInventory();
+
+        } else {
+            plugin.getLogger().warning("Unknown RGA action: rga:" + action);
+            player.sendMessage(ChatColor.RED + "Unknown action: " + action);
+        }
+    }
+}

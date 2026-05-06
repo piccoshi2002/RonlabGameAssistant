@@ -1,0 +1,32 @@
+# -----------------------------------------------
+# Ronlab Game Assistant - General Configuration
+# -----------------------------------------------
+
+# The name of the hub world. Players receive the
+# navigator compass when entering this world.
+hub-world: "Hub"
+
+# The SMP worlds. Last locations are tracked and
+# restored for any world listed here.
+smp-worlds:
+  - "SMP"
+  - "SMP_nether"
+  - "SMP_end"
+
+# Compass item settings
+compass:
+  material: COMPASS
+  name: "&6World Navigator"
+  lore:
+    - "&7Right-click to open the"
+    - "&7World Navigator menu."
+  slot: 8
+  remove-on-leave-hub: true
+
+# Messages sent to players (supports & color codes)
+messages:
+  no-smp-location: "&cYou have no saved SMP location yet. Visit the SMP first!"
+  teleporting: "&aTeleporting..."
+  world-not-found: "&cWorld '{world}' could not be found."
+  reloaded: "&aRonlab Game Assistant reloaded successfully."
+  no-permission: "&cYou do not have permission to do that."

@@ -1,0 +1,74 @@
+# -----------------------------------------------
+# Ronlab Game Assistant - World Configuration
+# -----------------------------------------------
+# Define all persistent worlds here.
+# The plugin will load these on startup and apply
+# the settings defined for each world.
+#
+# environment options: NORMAL, NETHER, THE_END
+# gamemode options: SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR
+# -----------------------------------------------
+
+worlds:
+  Hub:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: ADVENTURE
+    pvp: false
+    announce-join: false
+
+  SMP:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: SURVIVAL
+    pvp: true
+    announce-join: false
+
+  SMP_nether:
+    load-on-startup: true
+    environment: NETHER
+    gamemode: SURVIVAL
+    pvp: true
+    announce-join: false
+
+  SMP_end:
+    load-on-startup: true
+    environment: THE_END
+    gamemode: SURVIVAL
+    pvp: true
+    announce-join: false
+
+  Creative:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: CREATIVE
+    pvp: false
+    announce-join: false
+
+  Adventure:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: ADVENTURE
+    pvp: false
+    announce-join: false
+
+  ParkourMap1:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: ADVENTURE
+    pvp: false
+    announce-join: false
+
+  ParkourMap2:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: ADVENTURE
+    pvp: false
+    announce-join: false
+
+  ParkourMap3:
+    load-on-startup: true
+    environment: NORMAL
+    gamemode: ADVENTURE
+    pvp: false
+    announce-join: false

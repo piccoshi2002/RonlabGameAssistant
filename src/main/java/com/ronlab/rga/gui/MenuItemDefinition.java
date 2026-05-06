@@ -1,0 +1,32 @@
+package com.ronlab.rga.gui;
+
+import org.bukkit.Material;
+
+import java.util.List;
+
+public class MenuItemDefinition {
+
+    private final Material material;
+    private final String name;
+    private final List<String> lore;
+    private final int slot;
+    private final List<String> leftClick;
+    private final List<String> rightClick;
+
+    public MenuItemDefinition(Material material, String name, List<String> lore,
+                               int slot, List<String> leftClick, List<String> rightClick) {
+        this.material = material;
+        this.name = name;
+        this.lore = lore;
+        this.slot = slot;
+        this.leftClick = leftClick;
+        this.rightClick = rightClick;
+    }
+
+    public Material getMaterial() { return material; }
+    public String getName() { return name; }
+    public List<String> getLore() { return lore; }
+    public int getSlot() { return slot; }
+    public List<String> getLeftClick() { return leftClick; }
+    public List<String> getRightClick() { return rightClick; }
+}

@@ -1,0 +1,17 @@
+name: RonlabGameAssistant
+version: '1.0.0'
+main: com.ronlab.rga.RGA
+api-version: '1.21'
+description: All-in-one game assistant for the Ronlab server.
+authors: [ ]
+
+commands:
+  rga:
+    description: Ronlab Game Assistant command.
+    usage: /rga <reload|tp|conclude>
+    permission: rga.admin
+
+permissions:
+  rga.admin:
+    description: Access to all RGA admin commands.
+    default: op
