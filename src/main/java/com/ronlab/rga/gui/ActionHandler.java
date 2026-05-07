@@ -30,7 +30,6 @@ public class ActionHandler {
                 String command = action.substring(7).trim().replace("%player%", player.getName());
                 player.performCommand(command);
             } else if (!action.isEmpty()) {
-                // Default: treat as console command for backwards compatibility
                 String command = action.replace("%player%", player.getName());
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
             }
@@ -41,7 +40,6 @@ public class ActionHandler {
         if (action.startsWith("open_menu ")) {
             String menuName = action.substring(10).trim();
             player.closeInventory();
-            // Small delay to prevent inventory glitch
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> plugin.getMenuManager().openMenu(player, menuName), 1L);
 
@@ -52,6 +50,14 @@ public class ActionHandler {
 
         } else if (action.startsWith("tp ")) {
             String worldName = action.substring(3).trim();
+
+            // If the player is currently in an SMP world, save their location
+            // BEFORE teleporting them away
+            String currentWorld = player.getWorld().getName();
+            if (plugin.getConfigManager().getSmpWorlds().contains(currentWorld)) {
+                plugin.getLocationTracker().saveLocation(player, player.getLocation());
+            }
+
             player.closeInventory();
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> plugin.getWorldManager().teleportToWorld(player, worldName), 1L);
