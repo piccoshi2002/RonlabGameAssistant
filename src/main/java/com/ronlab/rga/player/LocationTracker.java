@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,15 +25,12 @@ public class LocationTracker implements Listener {
     private final File dataFile;
     private FileConfiguration dataConfig;
 
-    // In-memory cache: player UUID -> last SMP location
     private final Map<UUID, Location> lastSmpLocations = new HashMap<>();
 
     public LocationTracker(RGA plugin) {
         this.plugin = plugin;
         this.dataFile = new File(plugin.getDataFolder(), "player-data.yml");
         loadFromDisk();
-
-        // Register this as a listener for auto-saving
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -42,7 +40,6 @@ public class LocationTracker implements Listener {
     public void onWorldChange(PlayerChangedWorldEvent event) {
         String fromWorld = event.getFrom().getName();
         if (plugin.getConfigManager().getSmpWorlds().contains(fromWorld)) {
-            // Player just left an SMP world — save their location
             saveLocation(event.getPlayer(), event.getPlayer().getLocation());
         }
     }
@@ -64,44 +61,53 @@ public class LocationTracker implements Listener {
 
     public boolean hasLocation(Player player) {
         if (lastSmpLocations.containsKey(player.getUniqueId())) return true;
-        // Check disk
         return dataConfig.contains(player.getUniqueId().toString());
     }
 
     public Location getLocation(Player player) {
-        // Check memory first
         if (lastSmpLocations.containsKey(player.getUniqueId())) {
             return lastSmpLocations.get(player.getUniqueId());
         }
-        // Fall back to disk
         return loadLocationFromDisk(player.getUniqueId());
     }
 
     public void teleportToLastLocation(Player player) {
-        if (!hasLocation(player)) {
+        // If we have a saved location, use it
+        if (hasLocation(player)) {
+            Location loc = getLocation(player);
+            if (loc != null && loc.getWorld() != null) {
+                World world = Bukkit.getWorld(loc.getWorld().getName());
+                if (world != null) {
+                    player.sendMessage(plugin.getConfigManager().getMessage("teleporting"));
+                    player.teleport(loc);
+                    var settings = plugin.getWorldManager().getSettings(world.getName());
+                    if (settings != null) {
+                        player.setGameMode(settings.getGamemode());
+                    }
+                    return;
+                }
+            }
+        }
+
+        // No saved location — fall back to first SMP world spawn
+        List<String> smpWorlds = plugin.getConfigManager().getSmpWorlds();
+        if (smpWorlds.isEmpty()) {
             player.sendMessage(plugin.getConfigManager().getMessage("no-smp-location"));
             return;
         }
 
-        Location loc = getLocation(player);
-        if (loc == null || loc.getWorld() == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("no-smp-location"));
+        String fallbackWorldName = smpWorlds.get(0);
+        World fallback = Bukkit.getWorld(fallbackWorldName);
+        if (fallback == null) {
+            player.sendMessage(plugin.getConfigManager().getMessage("world-not-found", fallbackWorldName));
             return;
         }
 
-        // Make sure the world is loaded
-        World world = Bukkit.getWorld(loc.getWorld().getName());
-        if (world == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("world-not-found", loc.getWorld().getName()));
-            return;
-        }
-
+        player.sendMessage("§7No saved SMP location found. Sending you to the SMP world spawn.");
         player.sendMessage(plugin.getConfigManager().getMessage("teleporting"));
-        player.teleport(loc);
+        player.teleport(fallback.getSpawnLocation());
 
-        // Apply SMP gamemode (SURVIVAL)
-        plugin.getWorldManager().getSettings(world.getName());
-        var settings = plugin.getWorldManager().getSettings(world.getName());
+        var settings = plugin.getWorldManager().getSettings(fallbackWorldName);
         if (settings != null) {
             player.setGameMode(settings.getGamemode());
         }
