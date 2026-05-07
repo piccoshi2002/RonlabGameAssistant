@@ -8,15 +8,19 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class LocationTracker implements Listener {
@@ -27,6 +31,10 @@ public class LocationTracker implements Listener {
 
     private final Map<UUID, Location> lastSmpLocations = new HashMap<>();
 
+    // Players whose next world change should be ignored
+    // (because it was triggered by our login teleport, not by the player)
+    private final Set<UUID> ignoreNextWorldChange = new HashSet<>();
+
     public LocationTracker(RGA plugin) {
         this.plugin = plugin;
         this.dataFile = new File(plugin.getDataFolder(), "player-data.yml");
@@ -36,27 +44,54 @@ public class LocationTracker implements Listener {
 
     // ── Event Handlers ───────────────────────────────────────────
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onJoin(PlayerJoinEvent event) {
+        // Mark this player to ignore their next world change
+        // because we're about to teleport them to Hub on login
+        ignoreNextWorldChange.add(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
     public void onWorldChange(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+
+        // If this world change was caused by our login teleport, ignore it
+        if (ignoreNextWorldChange.remove(uuid)) {
+            return;
+        }
+
         String fromWorld = event.getFrom().getName();
         if (plugin.getConfigManager().getSmpWorlds().contains(fromWorld)) {
-            saveLocation(event.getPlayer(), event.getPlayer().getLocation());
+            // Save the location in the world they just left
+            // We need to get their old location — use the from world's spawn as a fallback
+            // but the player.getLocation() at this point is their NEW location
+            // so we rely on the saveLocation call from ActionHandler instead
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.NORMAL)
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         String currentWorld = player.getWorld().getName();
         if (plugin.getConfigManager().getSmpWorlds().contains(currentWorld)) {
             saveLocation(player, player.getLocation());
         }
+        // Clean up just in case
+        ignoreNextWorldChange.remove(player.getUniqueId());
     }
 
     // ── Public API ───────────────────────────────────────────────
 
     public void saveLocation(Player player, Location location) {
         lastSmpLocations.put(player.getUniqueId(), location.clone());
+        // Also write to disk immediately so it survives restarts
+        writeLocationToDisk(player.getUniqueId(), location);
+        try {
+            dataConfig.save(dataFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save player-data.yml: " + e.getMessage());
+        }
     }
 
     public boolean hasLocation(Player player) {
