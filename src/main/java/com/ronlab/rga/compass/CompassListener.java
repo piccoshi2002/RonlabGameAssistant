@@ -2,6 +2,7 @@ package com.ronlab.rga.compass;
 
 import com.ronlab.rga.RGA;
 import com.ronlab.rga.gui.MenuManager;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,17 +13,19 @@ import org.bukkit.inventory.ItemStack;
 
 public class CompassListener implements Listener {
 
+    private final RGA plugin;
     private final MenuManager menuManager;
     private final HubListener hubListener;
 
     public CompassListener(RGA plugin, MenuManager menuManager, HubListener hubListener) {
+        this.plugin = plugin;
         this.menuManager = menuManager;
         this.hubListener = hubListener;
     }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        // Only fire once — ignore off-hand duplicate event
+        // Only fire once — ignore the duplicate off-hand event Paper sends
         if (event.getHand() != EquipmentSlot.HAND) return;
 
         Action action = event.getAction();
@@ -33,17 +36,15 @@ public class CompassListener implements Listener {
 
         Player player = event.getPlayer();
 
-        // If they're holding ANY compass and are in the hub, re-give the tagged one
-        // This handles the case where they have an untagged compass from a previous plugin
-        if (item.getType() == org.bukkit.Material.COMPASS && !hubListener.isNavigatorCompass(item)) {
-            String hubWorld = hubListener.getPlugin().getConfigManager().getHubWorld();
+        // If they're holding an untagged compass in the hub, replace it with the proper one
+        if (item.getType() == Material.COMPASS && !hubListener.isNavigatorCompass(item)) {
+            String hubWorld = plugin.getConfigManager().getHubWorld();
             if (player.getWorld().getName().equalsIgnoreCase(hubWorld)) {
-                // Remove untagged compass and give proper one
-                player.getInventory().setItem(event.getPlayer().getInventory().getHeldItemSlot(), null);
+                player.getInventory().setItem(player.getInventory().getHeldItemSlot(), null);
                 hubListener.giveCompass(player);
                 player.sendMessage("§6Your navigator compass has been updated.");
-                return;
             }
+            return;
         }
 
         if (!hubListener.isNavigatorCompass(item)) return;
