@@ -32,9 +32,16 @@ public class HubListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         String hubWorld = plugin.getConfigManager().getHubWorld();
-        if (player.getWorld().getName().equalsIgnoreCase(hubWorld)) {
+
+        // Always teleport to Hub on login, with a short delay to ensure
+        // the player is fully loaded before teleporting
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            org.bukkit.World hub = org.bukkit.Bukkit.getWorld(hubWorld);
+            if (hub != null) {
+                player.teleport(hub.getSpawnLocation());
+            }
             giveCompass(player);
-        }
+        }, 5L);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -55,18 +62,15 @@ public class HubListener implements Listener {
     }
 
     public void giveCompass(Player player) {
-        // Don't give if they already have it
         if (hasCompass(player)) return;
 
         ItemStack compass = buildCompass();
         int slot = plugin.getConfig().getInt("compass.slot", 8);
 
-        // Try preferred slot first
         ItemStack existing = player.getInventory().getItem(slot);
         if (existing == null || existing.getType().isAir()) {
             player.getInventory().setItem(slot, compass);
         } else {
-            // Try any free hotbar slot
             boolean placed = false;
             for (int i = 0; i <= 8; i++) {
                 ItemStack s = player.getInventory().getItem(i);
