@@ -3,8 +3,11 @@ package com.ronlab.rga.world;
 import com.ronlab.rga.RGA;
 import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +63,30 @@ public class WorldManager {
         }
     }
 
+    private boolean worldFolderExists(String worldName) {
+        // Check top-level folder first (legacy and default worlds)
+        File topLevel = new File(Bukkit.getWorldContainer(), worldName);
+        if (topLevel.exists()) return true;
+
+        // Check inside world/dimensions/ (Paper 26.1+ custom world storage)
+        File serverDir = Bukkit.getWorldContainer();
+        File[] topFolders = serverDir.listFiles(File::isDirectory);
+        if (topFolders != null) {
+            for (File worldFolder : topFolders) {
+                // Look in worldFolder/dimensions/*/worldName
+                File dimensionsDir = new File(worldFolder, "dimensions");
+                if (!dimensionsDir.exists()) continue;
+                File[] namespaceDirs = dimensionsDir.listFiles(File::isDirectory);
+                if (namespaceDirs == null) continue;
+                for (File nsDir : namespaceDirs) {
+                    File candidate = new File(nsDir, worldName);
+                    if (candidate.exists()) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void loadWorld(String worldName, World.Environment environment, WorldSettings settings) {
         // If already loaded, just apply settings
         World existing = Bukkit.getWorld(worldName);
@@ -68,9 +95,8 @@ public class WorldManager {
             return;
         }
 
-        // Check if world folder exists
-        java.io.File worldFolder = new java.io.File(Bukkit.getWorldContainer(), worldName);
-        if (!worldFolder.exists()) {
+        // Check if world exists in any location Paper 26.1 uses
+        if (!worldFolderExists(worldName)) {
             plugin.getLogger().warning("World folder for '" + worldName + "' does not exist. Skipping.");
             return;
         }
@@ -91,39 +117,13 @@ public class WorldManager {
 
     private void applySettings(World world, WorldSettings settings) {
         world.setPVP(settings.isPvp());
-        // Set per-world gamemode via world rules where supported
-    }
-
-    /**
-     * Teleports a player to the spawn of a named world.
-     * Applies that world's configured gamemode on arrival.
-     */
-    public boolean teleportToWorld(Player player, String worldName) {
-        World world = Bukkit.getWorld(worldName);
-        if (world == null) {
-            player.sendMessage(plugin.getConfigManager().getMessage("world-not-found", worldName));
-            return false;
-        }
-
-        player.sendMessage(plugin.getConfigManager().getMessage("teleporting"));
-        player.teleport(world.getSpawnLocation());
-
-        // Apply configured gamemode
-        WorldSettings settings = worldSettings.get(worldName);
-        if (settings != null) {
-            player.setGameMode(settings.getGamemode());
-        }
-
-        return true;
     }
 
     /**
      * Creates and loads a brand new world, then saves it to worlds.yml.
-     * Returns true on success, false on failure.
      */
     public boolean createWorld(String worldName, World.Environment environment,
                                GameMode gamemode, boolean pvp) {
-        // Don't create if already loaded
         if (Bukkit.getWorld(worldName) != null) return false;
 
         WorldCreator creator = new WorldCreator(worldName);
@@ -138,8 +138,6 @@ public class WorldManager {
         WorldSettings settings = new WorldSettings(gamemode, pvp, environment);
         worldSettings.put(worldName, settings);
         applySettings(world, settings);
-
-        // Persist to worlds.yml
         saveWorldToConfig(worldName, environment, gamemode, pvp);
 
         plugin.getLogger().info("Created and loaded world: " + worldName);
@@ -148,9 +146,8 @@ public class WorldManager {
 
     private void saveWorldToConfig(String worldName, World.Environment environment,
                                    GameMode gamemode, boolean pvp) {
-        java.io.File file = new java.io.File(plugin.getDataFolder(), "worlds.yml");
-        org.bukkit.configuration.file.FileConfiguration config =
-                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file);
+        File file = new File(plugin.getDataFolder(), "worlds.yml");
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 
         String path = "worlds." + worldName;
         config.set(path + ".load-on-startup", true);
@@ -161,12 +158,32 @@ public class WorldManager {
 
         try {
             config.save(file);
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             plugin.getLogger().severe("Could not save worlds.yml: " + e.getMessage());
         }
 
-        // Reload config manager so new world is recognised immediately
         plugin.getConfigManager().reload();
+    }
+
+    /**
+     * Teleports a player to the spawn of a named world.
+     */
+    public boolean teleportToWorld(Player player, String worldName) {
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            player.sendMessage(plugin.getConfigManager().getMessage("world-not-found", worldName));
+            return false;
+        }
+
+        player.sendMessage(plugin.getConfigManager().getMessage("teleporting"));
+        player.teleport(world.getSpawnLocation());
+
+        WorldSettings settings = worldSettings.get(worldName);
+        if (settings != null) {
+            player.setGameMode(settings.getGamemode());
+        }
+
+        return true;
     }
 
     public WorldSettings getSettings(String worldName) {
