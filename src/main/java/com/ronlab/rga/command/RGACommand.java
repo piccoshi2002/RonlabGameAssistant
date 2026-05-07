@@ -2,6 +2,8 @@ package com.ronlab.rga.command;
 
 import com.ronlab.rga.RGA;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -35,7 +37,6 @@ public class RGACommand implements CommandExecutor {
             }
 
             case "tp" -> {
-                // /rga tp <player> <world>
                 if (args.length < 3) {
                     sender.sendMessage("§cUsage: /rga tp <player> <world>");
                     return true;
@@ -49,18 +50,28 @@ public class RGACommand implements CommandExecutor {
             }
 
             case "conclude" -> {
-                // /rga conclude <worldname> — reserved for Stage 3 minigame cleanup
                 if (args.length < 2) {
                     sender.sendMessage("§cUsage: /rga conclude <worldname>");
                     return true;
                 }
-                // Stage 3 will wire this up to MinigameManager
                 sender.sendMessage("§eMinigame conclude coming in Stage 3.");
             }
 
+            case "compass" -> {
+                if (args.length < 2) {
+                    sender.sendMessage("§cUsage: /rga compass <player>");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage("§cPlayer '" + args[1] + "' not found.");
+                    return true;
+                }
+                plugin.getHubListener().giveCompass(target);
+                sender.sendMessage("§aGave navigator compass to " + target.getName() + ".");
+            }
+
             case "createworld" -> {
-                // /rga createworld <name> <environment> <gamemode> <pvp>
-                // Example: /rga createworld Hub NORMAL ADVENTURE false
                 if (args.length < 5) {
                     sender.sendMessage("§cUsage: /rga createworld <name> <environment> <gamemode> <pvp>");
                     sender.sendMessage("§7Environments: NORMAL, NETHER, THE_END");
@@ -74,18 +85,18 @@ public class RGACommand implements CommandExecutor {
                 String gamemodeArg = args[3].toUpperCase();
                 boolean pvp = Boolean.parseBoolean(args[4]);
 
-                org.bukkit.World.Environment environment;
+                World.Environment environment;
                 try {
-                    environment = org.bukkit.World.Environment.valueOf(envArg);
+                    environment = World.Environment.valueOf(envArg);
                 } catch (IllegalArgumentException e) {
                     sender.sendMessage("§cInvalid environment: " + envArg);
                     sender.sendMessage("§7Valid options: NORMAL, NETHER, THE_END");
                     return true;
                 }
 
-                org.bukkit.GameMode gamemode;
+                GameMode gamemode;
                 try {
-                    gamemode = org.bukkit.GameMode.valueOf(gamemodeArg);
+                    gamemode = GameMode.valueOf(gamemodeArg);
                 } catch (IllegalArgumentException e) {
                     sender.sendMessage("§cInvalid gamemode: " + gamemodeArg);
                     sender.sendMessage("§7Valid options: SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR");
@@ -105,19 +116,6 @@ public class RGACommand implements CommandExecutor {
                 } else {
                     sender.sendMessage("§cFailed to create world '" + worldName + "'. Check console for details.");
                 }
-            }
-                // /rga compass <player> — give compass to a player manually
-                if (args.length < 2) {
-                    sender.sendMessage("§cUsage: /rga compass <player>");
-                    return true;
-                }
-                Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
-                    sender.sendMessage("§cPlayer '" + args[1] + "' not found.");
-                    return true;
-                }
-                plugin.getHubListener().giveCompass(target);
-                sender.sendMessage("§aGave navigator compass to " + target.getName() + ".");
             }
 
             default -> sendHelp(sender);
