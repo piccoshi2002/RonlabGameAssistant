@@ -117,6 +117,58 @@ public class WorldManager {
         return true;
     }
 
+    /**
+     * Creates and loads a brand new world, then saves it to worlds.yml.
+     * Returns true on success, false on failure.
+     */
+    public boolean createWorld(String worldName, World.Environment environment,
+                               GameMode gamemode, boolean pvp) {
+        // Don't create if already loaded
+        if (Bukkit.getWorld(worldName) != null) return false;
+
+        WorldCreator creator = new WorldCreator(worldName);
+        creator.environment(environment);
+        World world = Bukkit.createWorld(creator);
+
+        if (world == null) {
+            plugin.getLogger().warning("Failed to create world: " + worldName);
+            return false;
+        }
+
+        WorldSettings settings = new WorldSettings(gamemode, pvp, environment);
+        worldSettings.put(worldName, settings);
+        applySettings(world, settings);
+
+        // Persist to worlds.yml
+        saveWorldToConfig(worldName, environment, gamemode, pvp);
+
+        plugin.getLogger().info("Created and loaded world: " + worldName);
+        return true;
+    }
+
+    private void saveWorldToConfig(String worldName, World.Environment environment,
+                                   GameMode gamemode, boolean pvp) {
+        java.io.File file = new java.io.File(plugin.getDataFolder(), "worlds.yml");
+        org.bukkit.configuration.file.FileConfiguration config =
+                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file);
+
+        String path = "worlds." + worldName;
+        config.set(path + ".load-on-startup", true);
+        config.set(path + ".environment", environment.name());
+        config.set(path + ".gamemode", gamemode.name());
+        config.set(path + ".pvp", pvp);
+        config.set(path + ".announce-join", false);
+
+        try {
+            config.save(file);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().severe("Could not save worlds.yml: " + e.getMessage());
+        }
+
+        // Reload config manager so new world is recognised immediately
+        plugin.getConfigManager().reload();
+    }
+
     public WorldSettings getSettings(String worldName) {
         return worldSettings.get(worldName);
     }
