@@ -1,5 +1,6 @@
 package com.ronlab.rga;
 
+import com.ronlab.rga.command.HubCommand;
 import com.ronlab.rga.command.RGACommand;
 import com.ronlab.rga.compass.CompassListener;
 import com.ronlab.rga.compass.HubListener;
@@ -41,6 +42,7 @@ public class RGA extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this, menuManager), this);
 
         getCommand("rga").setExecutor(new RGACommand(this));
+        getCommand("hub").setExecutor(new HubCommand(this));
 
         getLogger().info("Ronlab Game Assistant enabled.");
     }
