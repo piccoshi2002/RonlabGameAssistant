@@ -22,3 +22,4 @@ permissions:
   rga.hub:
     description: Allows use of the /hub command.
     default: true
+    
