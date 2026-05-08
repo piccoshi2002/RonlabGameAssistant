@@ -7,11 +7,18 @@ authors: [ ]
 
 commands:
   rga:
-    description: Ronlab Game Assistant command.
-    usage: /rga <reload|tp|conclude>
+    description: Ronlab Game Assistant admin command.
+    usage: /rga <reload|tp|conclude|createworld|compass>
     permission: rga.admin
+  hub:
+    description: Return to the Hub world.
+    usage: /hub
+    permission: rga.hub
 
 permissions:
   rga.admin:
     description: Access to all RGA admin commands.
     default: op
+  rga.hub:
+    description: Allows use of the /hub command.
+    default: true
