@@ -7,6 +7,7 @@ import com.ronlab.rga.compass.HubListener;
 import com.ronlab.rga.config.ConfigManager;
 import com.ronlab.rga.gui.MenuListener;
 import com.ronlab.rga.gui.MenuManager;
+import com.ronlab.rga.player.InventoryManager;
 import com.ronlab.rga.player.LocationTracker;
 import com.ronlab.rga.world.WorldManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,6 +20,7 @@ public class RGA extends JavaPlugin {
     private WorldManager worldManager;
     private MenuManager menuManager;
     private LocationTracker locationTracker;
+    private InventoryManager inventoryManager;
     private HubListener hubListener;
 
     @Override
@@ -31,6 +33,7 @@ public class RGA extends JavaPlugin {
 
         configManager = new ConfigManager(this);
         locationTracker = new LocationTracker(this);
+        inventoryManager = new InventoryManager(this);
         worldManager = new WorldManager(this);
         menuManager = new MenuManager(this);
 
@@ -57,6 +60,7 @@ public class RGA extends JavaPlugin {
         reloadConfig();
         configManager.reload();
         menuManager.reload();
+        inventoryManager.reload();
         worldManager.loadConfiguredWorlds();
         getLogger().info("Ronlab Game Assistant reloaded.");
     }
@@ -66,5 +70,6 @@ public class RGA extends JavaPlugin {
     public WorldManager getWorldManager() { return worldManager; }
     public MenuManager getMenuManager() { return menuManager; }
     public LocationTracker getLocationTracker() { return locationTracker; }
+    public InventoryManager getInventoryManager() { return inventoryManager; }
     public HubListener getHubListener() { return hubListener; }
 }
