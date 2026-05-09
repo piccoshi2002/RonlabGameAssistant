@@ -12,15 +12,20 @@ public class MenuItemDefinition {
     private final int slot;
     private final List<String> leftClick;
     private final List<String> rightClick;
+    private final boolean showPlayerCount;
+    private final String playerCountWorld;
 
     public MenuItemDefinition(Material material, String name, List<String> lore,
-                               int slot, List<String> leftClick, List<String> rightClick) {
+                               int slot, List<String> leftClick, List<String> rightClick,
+                               boolean showPlayerCount, String playerCountWorld) {
         this.material = material;
         this.name = name;
         this.lore = lore;
         this.slot = slot;
         this.leftClick = leftClick;
         this.rightClick = rightClick;
+        this.showPlayerCount = showPlayerCount;
+        this.playerCountWorld = playerCountWorld;
     }
 
     public Material getMaterial() { return material; }
@@ -29,4 +34,6 @@ public class MenuItemDefinition {
     public int getSlot() { return slot; }
     public List<String> getLeftClick() { return leftClick; }
     public List<String> getRightClick() { return rightClick; }
+    public boolean isShowPlayerCount() { return showPlayerCount; }
+    public String getPlayerCountWorld() { return playerCountWorld; }
 }
