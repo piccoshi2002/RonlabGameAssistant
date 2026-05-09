@@ -338,9 +338,8 @@ public class RGACommand implements CommandExecutor, TabCompleter {
                 case "setworldpvp" -> completions.addAll(List.of("true", "false"));
                 case "setworlddifficulty" -> completions.addAll(List.of("PEACEFUL", "EASY", "NORMAL", "HARD"));
                 case "gamerule" -> {
-                    for (String rule : GameRule.values().stream()
-                            .map(GameRule::getName).toList()) {
-                        completions.add(rule);
+                    for (GameRule<?> rule : GameRule.values()) {
+                        completions.add(rule.getName());
                     }
                 }
                 case "tp" -> Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
