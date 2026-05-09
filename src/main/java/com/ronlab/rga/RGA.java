@@ -10,6 +10,7 @@ import com.ronlab.rga.gui.MenuManager;
 import com.ronlab.rga.player.InventoryManager;
 import com.ronlab.rga.player.LocationTracker;
 import com.ronlab.rga.world.WorldManager;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class RGA extends JavaPlugin {
@@ -45,9 +46,16 @@ public class RGA extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this, menuManager), this);
 
         RGACommand rgaCommand = new RGACommand(this);
-        getCommand("rga").setExecutor(rgaCommand);
-        getCommand("rga").setTabCompleter(rgaCommand);
-        getCommand("hub").setExecutor(new HubCommand(this));
+        PluginCommand rga = getCommand("rga");
+        if (rga != null) {
+            rga.setExecutor(rgaCommand);
+            rga.setTabCompleter(rgaCommand);
+        }
+
+        PluginCommand hub = getCommand("hub");
+        if (hub != null) {
+            hub.setExecutor(new HubCommand(this));
+        }
 
         getLogger().info("Ronlab Game Assistant enabled.");
     }
