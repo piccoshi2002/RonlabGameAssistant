@@ -10,17 +10,30 @@ public class WorldSettings {
     private final boolean pvp;
     private final World.Environment environment;
     private final Difficulty difficulty;
+    private final String alias;
+    private final boolean template;
+    private final long timeLock;      // -1 = no lock, otherwise ticks (0-24000)
+    private final boolean weatherLock;
 
-    public WorldSettings(GameMode gamemode, boolean pvp,
-                         World.Environment environment, Difficulty difficulty) {
+    public WorldSettings(GameMode gamemode, boolean pvp, World.Environment environment,
+                         Difficulty difficulty, String alias, boolean template,
+                         long timeLock, boolean weatherLock) {
         this.gamemode = gamemode;
         this.pvp = pvp;
         this.environment = environment;
         this.difficulty = difficulty;
+        this.alias = alias;
+        this.template = template;
+        this.timeLock = timeLock;
+        this.weatherLock = weatherLock;
     }
 
     public GameMode getGamemode() { return gamemode; }
     public boolean isPvp() { return pvp; }
     public World.Environment getEnvironment() { return environment; }
     public Difficulty getDifficulty() { return difficulty; }
+    public String getAlias() { return alias; }
+    public boolean isTemplate() { return template; }
+    public long getTimeLock() { return timeLock; }
+    public boolean isWeatherLock() { return weatherLock; }
 }
