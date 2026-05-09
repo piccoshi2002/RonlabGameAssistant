@@ -1,9 +1,7 @@
 package com.ronlab.rga.compass;
 
 import com.ronlab.rga.RGA;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -33,18 +31,22 @@ public class HubListener implements Listener {
         Player player = event.getPlayer();
         String hubWorld = plugin.getConfigManager().getHubWorld();
 
-        // Always teleport to Hub on login, with a short delay to ensure
-        // the player is fully loaded before teleporting
+        // Mark inventory manager to ignore the world change caused by our teleport
+        plugin.getInventoryManager().markIgnoreNextWorldChange(player.getUniqueId());
+
+        // Delay teleport to ensure player is fully loaded
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            org.bukkit.World hub = org.bukkit.Bukkit.getWorld(hubWorld);
+            World hub = Bukkit.getWorld(hubWorld);
             if (hub != null) {
                 player.teleport(hub.getSpawnLocation());
             }
+            // Clear inventory and give compass after teleport
+            plugin.getInventoryManager().clearPlayer(player);
             giveCompass(player);
         }, 5L);
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.LOW)
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         String hubWorld = plugin.getConfigManager().getHubWorld();
@@ -52,7 +54,10 @@ public class HubListener implements Listener {
         String oldWorld = event.getFrom().getName();
 
         if (newWorld.equalsIgnoreCase(hubWorld)) {
-            giveCompass(player);
+            // Give compass after a tick so InventoryManager's clear runs first
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                giveCompass(player);
+            }, 1L);
         } else if (oldWorld.equalsIgnoreCase(hubWorld)) {
             boolean removeOnLeave = plugin.getConfig().getBoolean("compass.remove-on-leave-hub", true);
             if (removeOnLeave) {
@@ -119,13 +124,13 @@ public class HubListener implements Listener {
         ItemMeta meta = item.getItemMeta();
 
         String name = config.getString("compass.name", "&6World Navigator");
-        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+        meta.setDisplayName(org.bukkit.ChatColor.translateAlternateColorCodes('&', name));
 
         List<String> rawLore = config.getStringList("compass.lore");
         if (!rawLore.isEmpty()) {
             List<String> lore = new ArrayList<>();
             for (String line : rawLore) {
-                lore.add(ChatColor.translateAlternateColorCodes('&', line));
+                lore.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', line));
             }
             meta.setLore(lore);
         }
