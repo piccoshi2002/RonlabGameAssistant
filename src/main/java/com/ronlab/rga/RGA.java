@@ -44,7 +44,9 @@ public class RGA extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CompassListener(this, menuManager, hubListener), this);
         getServer().getPluginManager().registerEvents(new MenuListener(this, menuManager), this);
 
-        getCommand("rga").setExecutor(new RGACommand(this));
+        RGACommand rgaCommand = new RGACommand(this);
+        getCommand("rga").setExecutor(rgaCommand);
+        getCommand("rga").setTabCompleter(rgaCommand);
         getCommand("hub").setExecutor(new HubCommand(this));
 
         getLogger().info("Ronlab Game Assistant enabled.");
