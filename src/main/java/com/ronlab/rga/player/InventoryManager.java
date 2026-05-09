@@ -53,19 +53,25 @@ public class InventoryManager implements Listener {
         plugin.getLogger().info("Loaded " + worldToGroup.size() + " world-to-group mappings.");
     }
 
-    // ── Events ───────────────────────────────────────────────────
+    // ── Public API ───────────────────────────────────────────────
 
-    @EventHandler(priority = EventPriority.NORMAL)
-    public void onJoin(PlayerJoinEvent event) {
-        // Ignore the world change caused by our login teleport to Hub
-        ignoreNextWorldChange.add(event.getPlayer().getUniqueId());
+    /**
+     * Called by HubListener when a player joins or teleports to Hub on login.
+     * Marks them to ignore the next world change so the login teleport
+     * doesn't corrupt their saved inventories.
+     */
+    public void markIgnoreNextWorldChange(UUID uuid) {
+        ignoreNextWorldChange.add(uuid);
     }
+
+    // ── Events ───────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
+        // Skip world changes caused by our login teleport
         if (ignoreNextWorldChange.remove(uuid)) return;
 
         String fromWorld = event.getFrom().getName();
@@ -78,17 +84,17 @@ public class InventoryManager implements Listener {
         // If moving within the same group, do nothing
         if (fromGroup.equals(toGroup)) return;
 
-        // Save inventory for the group they're leaving (unless it's Hub)
+        // Save inventory for the group they're leaving (unless leaving Hub)
         if (!fromWorld.equalsIgnoreCase(hubWorld)) {
             saveInventory(player, fromGroup);
         }
 
-        // Load inventory for the group they're entering (unless it's Hub)
-        if (!toWorld.equalsIgnoreCase(hubWorld)) {
-            loadInventory(player, toGroup);
-        } else {
-            // Entering Hub — clear everything, compass will be given by HubListener
+        // Load inventory for group they're entering, or clear for Hub
+        if (toWorld.equalsIgnoreCase(hubWorld)) {
+            // Clear inventory — HubListener will give the compass afterwards
             clearPlayer(player);
+        } else {
+            loadInventory(player, toGroup);
         }
     }
 
@@ -98,7 +104,7 @@ public class InventoryManager implements Listener {
         String currentWorld = player.getWorld().getName();
         String hubWorld = plugin.getConfigManager().getHubWorld();
 
-        // Save inventory on logout unless they're in Hub
+        // Save inventory on logout unless in Hub
         if (!currentWorld.equalsIgnoreCase(hubWorld)) {
             saveInventory(player, getGroup(currentWorld));
         }
@@ -150,16 +156,14 @@ public class InventoryManager implements Listener {
     }
 
     public void loadInventory(Player player, String group) {
-        File file = getPlayerFile(player.getUniqueId());
-
         // Clear first
         clearPlayer(player);
 
+        File file = getPlayerFile(player.getUniqueId());
         if (!file.exists()) return;
 
         FileConfiguration data = YamlConfiguration.loadConfiguration(file);
         String path = group;
-
         if (!data.contains(path)) return;
 
         // Inventory contents
@@ -178,9 +182,7 @@ public class InventoryManager implements Listener {
 
         // Offhand
         ItemStack offhand = data.getItemStack(path + ".offhand");
-        if (offhand != null) {
-            player.getInventory().setItemInOffHand(offhand);
-        }
+        if (offhand != null) player.getInventory().setItemInOffHand(offhand);
 
         // Held item slot
         player.getInventory().setHeldItemSlot(data.getInt(path + ".heldSlot", 0));
@@ -199,18 +201,10 @@ public class InventoryManager implements Listener {
 
     // ── Helpers ──────────────────────────────────────────────────
 
-    /**
-     * Returns the group name for a world.
-     * If the world isn't in any group, the world name itself is used as the group.
-     */
     public String getGroup(String worldName) {
         return worldToGroup.getOrDefault(worldName, worldName);
     }
 
-    /**
-     * Clears a player's inventory, armor, offhand, XP, health and hunger.
-     * Used when entering Hub.
-     */
     public void clearPlayer(Player player) {
         player.getInventory().clear();
         player.getInventory().setArmorContents(new ItemStack[4]);
