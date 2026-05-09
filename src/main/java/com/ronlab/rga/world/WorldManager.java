@@ -36,15 +36,17 @@ public class WorldManager {
             if (section == null) continue;
 
             boolean loadOnStartup = section.getBoolean("load-on-startup", true);
-            World.Environment environment = parseEnvironment(
-                    section.getString("environment", "NORMAL"), worldName);
-            GameMode gamemode = parseGameMode(
-                    section.getString("gamemode", "SURVIVAL"), worldName);
+            World.Environment environment = parseEnvironment(section.getString("environment", "NORMAL"), worldName);
+            GameMode gamemode = parseGameMode(section.getString("gamemode", "SURVIVAL"), worldName);
             boolean pvp = section.getBoolean("pvp", true);
-            Difficulty difficulty = parseDifficulty(
-                    section.getString("difficulty", "NORMAL"), worldName);
+            Difficulty difficulty = parseDifficulty(section.getString("difficulty", "NORMAL"), worldName);
+            String alias = section.getString("alias", worldName);
+            boolean template = section.getBoolean("template", false);
+            long timeLock = section.getLong("time-lock", -1);
+            boolean weatherLock = section.getBoolean("weather-lock", false);
 
-            WorldSettings settings = new WorldSettings(gamemode, pvp, environment, difficulty);
+            WorldSettings settings = new WorldSettings(gamemode, pvp, environment,
+                    difficulty, alias, template, timeLock, weatherLock);
             worldSettings.put(worldName, settings);
 
             if (loadOnStartup) loadWorld(worldName, environment, settings);
@@ -77,7 +79,8 @@ public class WorldManager {
         if (!worldFolderExists(worldName)) return false;
 
         WorldSettings settings = worldSettings.getOrDefault(worldName,
-                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL, Difficulty.NORMAL));
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, false, -1, false));
 
         WorldCreator creator = new WorldCreator(worldName).environment(settings.getEnvironment());
         World world = Bukkit.createWorld(creator);
@@ -88,13 +91,45 @@ public class WorldManager {
         return true;
     }
 
+    public boolean importWorld(String worldName, CommandSender sender) {
+        // Check if already loaded
+        if (Bukkit.getWorld(worldName) != null) {
+            sender.sendMessage("§cWorld '" + worldName + "' is already loaded.");
+            return false;
+        }
+
+        // Check if folder exists
+        if (!worldFolderExists(worldName)) {
+            sender.sendMessage("§cNo world folder found for '" + worldName + "'.");
+            return false;
+        }
+
+        // Load with default settings
+        WorldSettings settings = new WorldSettings(GameMode.SURVIVAL, true,
+                World.Environment.NORMAL, Difficulty.NORMAL, worldName, false, -1, false);
+
+        WorldCreator creator = new WorldCreator(worldName);
+        World world = Bukkit.createWorld(creator);
+        if (world == null) return false;
+
+        applySettings(world, settings);
+        worldSettings.put(worldName, settings);
+
+        // Save to worlds.yml
+        saveWorldToConfig(worldName, World.Environment.NORMAL, GameMode.SURVIVAL,
+                true, Difficulty.NORMAL, worldName, false, -1, false);
+
+        plugin.getLogger().info("Imported world: " + worldName);
+        return true;
+    }
+
     public boolean unloadWorld(String worldName, CommandSender sender) {
         World world = Bukkit.getWorld(worldName);
-        if (world == null) { sender.sendMessage("§cWorld '" + worldName + "' is not loaded."); return false; }
-
-        // Kick all players to Hub first
+        if (world == null) {
+            sender.sendMessage("§cWorld '" + worldName + "' is not loaded.");
+            return false;
+        }
         kickPlayersToHub(world);
-
         return Bukkit.unloadWorld(world, true);
     }
 
@@ -105,7 +140,6 @@ public class WorldManager {
             Bukkit.unloadWorld(world, false);
         }
 
-        // Delete the world folder
         File worldFolder = findWorldFolder(worldName);
         if (worldFolder == null || !worldFolder.exists()) {
             sender.sendMessage("§cCould not find world folder for '" + worldName + "'.");
@@ -113,21 +147,16 @@ public class WorldManager {
         }
 
         boolean deleted = deleteFolder(worldFolder);
-
-        // Remove from worlds.yml
         if (deleted) {
             worldSettings.remove(worldName);
             removeWorldFromConfig(worldName);
         }
-
         return deleted;
     }
 
     private void kickPlayersToHub(World world) {
-        String hubWorldName = plugin.getConfigManager().getHubWorld();
-        World hub = Bukkit.getWorld(hubWorldName);
+        World hub = Bukkit.getWorld(plugin.getConfigManager().getHubWorld());
         if (hub == null) return;
-
         for (Player player : world.getPlayers()) {
             player.sendMessage("§eThe world you were in is being modified. Sending you to Hub.");
             player.teleport(hub.getSpawnLocation());
@@ -144,10 +173,12 @@ public class WorldManager {
         World world = Bukkit.createWorld(creator);
         if (world == null) return false;
 
-        WorldSettings settings = new WorldSettings(gamemode, pvp, environment, Difficulty.NORMAL);
+        WorldSettings settings = new WorldSettings(gamemode, pvp, environment,
+                Difficulty.NORMAL, worldName, false, -1, false);
         worldSettings.put(worldName, settings);
         applySettings(world, settings);
-        saveWorldToConfig(worldName, environment, gamemode, pvp, Difficulty.NORMAL);
+        saveWorldToConfig(worldName, environment, gamemode, pvp,
+                Difficulty.NORMAL, worldName, false, -1, false);
 
         plugin.getLogger().info("Created and loaded world: " + worldName);
         return true;
@@ -157,29 +188,91 @@ public class WorldManager {
 
     public void setWorldGamemode(String worldName, GameMode gamemode) {
         WorldSettings old = worldSettings.getOrDefault(worldName,
-                new WorldSettings(gamemode, true, World.Environment.NORMAL, Difficulty.NORMAL));
-        WorldSettings updated = new WorldSettings(gamemode, old.isPvp(),
-                old.getEnvironment(), old.getDifficulty());
-        worldSettings.put(worldName, updated);
+                new WorldSettings(gamemode, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, false, -1, false));
+        worldSettings.put(worldName, new WorldSettings(gamemode, old.isPvp(),
+                old.getEnvironment(), old.getDifficulty(), old.getAlias(),
+                old.isTemplate(), old.getTimeLock(), old.isWeatherLock()));
         updateWorldConfig(worldName, "gamemode", gamemode.name());
     }
 
     public void setWorldPvp(String worldName, boolean pvp) {
         WorldSettings old = worldSettings.getOrDefault(worldName,
-                new WorldSettings(GameMode.SURVIVAL, pvp, World.Environment.NORMAL, Difficulty.NORMAL));
-        WorldSettings updated = new WorldSettings(old.getGamemode(), pvp,
-                old.getEnvironment(), old.getDifficulty());
-        worldSettings.put(worldName, updated);
+                new WorldSettings(GameMode.SURVIVAL, pvp, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, false, -1, false));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), pvp,
+                old.getEnvironment(), old.getDifficulty(), old.getAlias(),
+                old.isTemplate(), old.getTimeLock(), old.isWeatherLock()));
         updateWorldConfig(worldName, "pvp", String.valueOf(pvp));
     }
 
     public void setWorldDifficulty(String worldName, Difficulty difficulty) {
         WorldSettings old = worldSettings.getOrDefault(worldName,
-                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL, difficulty));
-        WorldSettings updated = new WorldSettings(old.getGamemode(), old.isPvp(),
-                old.getEnvironment(), difficulty);
-        worldSettings.put(worldName, updated);
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        difficulty, worldName, false, -1, false));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), old.isPvp(),
+                old.getEnvironment(), difficulty, old.getAlias(),
+                old.isTemplate(), old.getTimeLock(), old.isWeatherLock()));
         updateWorldConfig(worldName, "difficulty", difficulty.name());
+        World world = Bukkit.getWorld(worldName);
+        if (world != null) world.setDifficulty(difficulty);
+    }
+
+    public void setWorldTimeLock(String worldName, long time) {
+        WorldSettings old = worldSettings.getOrDefault(worldName,
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, false, time, false));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), old.isPvp(),
+                old.getEnvironment(), old.getDifficulty(), old.getAlias(),
+                old.isTemplate(), time, old.isWeatherLock()));
+        updateWorldConfig(worldName, "time-lock", String.valueOf(time));
+        // Apply immediately
+        World world = Bukkit.getWorld(worldName);
+        if (world != null && time >= 0) {
+            world.setTime(time);
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        } else if (world != null) {
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+        }
+    }
+
+    public void setWorldWeatherLock(String worldName, boolean locked) {
+        WorldSettings old = worldSettings.getOrDefault(worldName,
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, false, -1, locked));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), old.isPvp(),
+                old.getEnvironment(), old.getDifficulty(), old.getAlias(),
+                old.isTemplate(), old.getTimeLock(), locked));
+        updateWorldConfig(worldName, "weather-lock", String.valueOf(locked));
+        World world = Bukkit.getWorld(worldName);
+        if (world != null && locked) {
+            world.setStorm(false);
+            world.setThundering(false);
+            world.setWeatherDuration(Integer.MAX_VALUE);
+            world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        } else if (world != null) {
+            world.setGameRule(GameRule.DO_WEATHER_CYCLE, true);
+        }
+    }
+
+    public void setWorldAlias(String worldName, String alias) {
+        WorldSettings old = worldSettings.getOrDefault(worldName,
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, alias, false, -1, false));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), old.isPvp(),
+                old.getEnvironment(), old.getDifficulty(), alias,
+                old.isTemplate(), old.getTimeLock(), old.isWeatherLock()));
+        updateWorldConfig(worldName, "alias", alias);
+    }
+
+    public void setWorldTemplate(String worldName, boolean template) {
+        WorldSettings old = worldSettings.getOrDefault(worldName,
+                new WorldSettings(GameMode.SURVIVAL, true, World.Environment.NORMAL,
+                        Difficulty.NORMAL, worldName, template, -1, false));
+        worldSettings.put(worldName, new WorldSettings(old.getGamemode(), old.isPvp(),
+                old.getEnvironment(), old.getDifficulty(), old.getAlias(),
+                template, old.getTimeLock(), old.isWeatherLock()));
+        updateWorldConfig(worldName, "template", String.valueOf(template));
     }
 
     // ── Teleport ─────────────────────────────────────────────────
@@ -190,9 +283,16 @@ public class WorldManager {
             player.sendMessage(plugin.getConfigManager().getMessage("world-not-found", worldName));
             return false;
         }
+
+        // Check template restriction
+        WorldSettings settings = worldSettings.get(worldName);
+        if (settings != null && settings.isTemplate() && !player.hasPermission("rga.admin")) {
+            player.sendMessage("§cYou cannot enter a template world.");
+            return false;
+        }
+
         player.sendMessage(plugin.getConfigManager().getMessage("teleporting"));
         player.teleport(world.getSpawnLocation());
-        WorldSettings settings = worldSettings.get(worldName);
         if (settings != null) player.setGameMode(settings.getGamemode());
         return true;
     }
@@ -202,14 +302,28 @@ public class WorldManager {
     private void applySettings(World world, WorldSettings settings) {
         world.setPVP(settings.isPvp());
         world.setDifficulty(settings.getDifficulty());
-        // Disable spawn protection
-        world.setSpawnFlags(world.getAllowAnimals(), world.getAllowMonsters());
+
+        // Time lock
+        if (settings.getTimeLock() >= 0) {
+            world.setTime(settings.getTimeLock());
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        }
+
+        // Weather lock
+        if (settings.isWeatherLock()) {
+            world.setStorm(false);
+            world.setThundering(false);
+            world.setWeatherDuration(Integer.MAX_VALUE);
+            world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        }
     }
 
     // ── Config persistence ───────────────────────────────────────
 
     private void saveWorldToConfig(String worldName, World.Environment environment,
-                                   GameMode gamemode, boolean pvp, Difficulty difficulty) {
+                                   GameMode gamemode, boolean pvp, Difficulty difficulty,
+                                   String alias, boolean template, long timeLock,
+                                   boolean weatherLock) {
         File file = new File(plugin.getDataFolder(), "worlds.yml");
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         String path = "worlds." + worldName;
@@ -218,6 +332,10 @@ public class WorldManager {
         config.set(path + ".gamemode", gamemode.name());
         config.set(path + ".pvp", pvp);
         config.set(path + ".difficulty", difficulty.name());
+        config.set(path + ".alias", alias);
+        config.set(path + ".template", template);
+        config.set(path + ".time-lock", timeLock);
+        config.set(path + ".weather-lock", weatherLock);
         config.set(path + ".announce-join", false);
         saveConfig(config, file);
         plugin.getConfigManager().reload();
@@ -239,9 +357,8 @@ public class WorldManager {
     }
 
     private void saveConfig(YamlConfiguration config, File file) {
-        try {
-            config.save(file);
-        } catch (IOException e) {
+        try { config.save(file); }
+        catch (IOException e) {
             plugin.getLogger().severe("Could not save worlds.yml: " + e.getMessage());
         }
     }
