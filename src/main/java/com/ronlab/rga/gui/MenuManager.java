@@ -4,6 +4,7 @@ import com.ronlab.rga.RGA;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -15,12 +16,7 @@ import java.util.*;
 public class MenuManager {
 
     private final RGA plugin;
-
-    // Parsed menus: menu name -> list of configured items
     private final Map<String, MenuDefinition> menus = new HashMap<>();
-
-    // Track which inventory title belongs to which menu name
-    // Used by the click listener to identify open RGA menus
     private final Map<String, String> titleToMenuName = new HashMap<>();
 
     public MenuManager(RGA plugin) {
@@ -32,7 +28,8 @@ public class MenuManager {
         menus.clear();
         titleToMenuName.clear();
 
-        ConfigurationSection menusSection = plugin.getConfigManager().getMenusConfig().getConfigurationSection("menus");
+        ConfigurationSection menusSection = plugin.getConfigManager()
+                .getMenusConfig().getConfigurationSection("menus");
         if (menusSection == null) {
             plugin.getLogger().warning("No menus section found in menus.yml!");
             return;
@@ -55,7 +52,8 @@ public class MenuManager {
                     String materialName = itemSection.getString("material", "STONE").toUpperCase();
                     Material material = Material.matchMaterial(materialName);
                     if (material == null) {
-                        plugin.getLogger().warning("Invalid material '" + materialName + "' for item '" + itemKey + "' in menu '" + menuName + "'.");
+                        plugin.getLogger().warning("Invalid material '" + materialName
+                                + "' for item '" + itemKey + "' in menu '" + menuName + "'.");
                         material = Material.STONE;
                     }
 
@@ -67,8 +65,11 @@ public class MenuManager {
                     int slot = itemSection.getInt("slot", 0);
                     List<String> leftClick = itemSection.getStringList("left_click");
                     List<String> rightClick = itemSection.getStringList("right_click");
+                    boolean showPlayerCount = itemSection.getBoolean("show-player-count", false);
+                    String playerCountWorld = itemSection.getString("player-count-world", "");
 
-                    items.add(new MenuItemDefinition(material, name, lore, slot, leftClick, rightClick));
+                    items.add(new MenuItemDefinition(material, name, lore, slot,
+                            leftClick, rightClick, showPlayerCount, playerCountWorld));
                 }
             }
 
@@ -94,14 +95,36 @@ public class MenuManager {
             ItemStack stack = new ItemStack(item.getMaterial());
             ItemMeta meta = stack.getItemMeta();
             meta.setDisplayName(item.getName());
-            if (!item.getLore().isEmpty()) meta.setLore(item.getLore());
+
+            // Build lore, injecting live player count if configured
+            List<String> lore = new ArrayList<>(item.getLore());
+            if (item.isShowPlayerCount() && !item.getPlayerCountWorld().isEmpty()) {
+                int count = getPlayerCount(item.getPlayerCountWorld());
+                String playerWord = count == 1 ? "player" : "players";
+                lore.add("");
+                lore.add(ChatColor.YELLOW + "" + count + " " + playerWord + " online");
+            }
+
+            if (!lore.isEmpty()) meta.setLore(lore);
             stack.setItemMeta(meta);
+
             if (item.getSlot() >= 0 && item.getSlot() < def.getSize()) {
                 inv.setItem(item.getSlot(), stack);
             }
         }
 
         player.openInventory(inv);
+    }
+
+    private int getPlayerCount(String worldName) {
+        // Support comma-separated world names for grouped worlds like SMP
+        String[] worlds = worldName.split(",");
+        int count = 0;
+        for (String w : worlds) {
+            World world = Bukkit.getWorld(w.trim());
+            if (world != null) count += world.getPlayers().size();
+        }
+        return count;
     }
 
     public MenuDefinition getMenuByTitle(String title) {
