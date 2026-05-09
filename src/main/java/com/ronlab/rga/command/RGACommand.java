@@ -277,7 +277,7 @@ public class RGACommand implements CommandExecutor, TabCompleter {
             ));
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
-                case "tp", "unloadworld", "deleteworld", "setspawn",
+                case "unloadworld", "deleteworld", "setspawn",
                      "setworldgamemode", "setworldpvp", "setworlddifficulty",
                      "setworldtime", "setworldweather", "setworldalias",
                      "setworldtemplate", "gamerule" ->
@@ -306,7 +306,7 @@ public class RGACommand implements CommandExecutor, TabCompleter {
                 case "setworlddifficulty" -> completions.addAll(List.of("PEACEFUL", "EASY", "NORMAL", "HARD"));
                 case "setworldtime" -> completions.addAll(List.of("day", "noon", "night", "midnight", "-1"));
                 case "setworldalias" -> completions.add("<alias>");
-                case "tp" -> Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
+                case "tp" -> Bukkit.getWorlds().forEach(w -> completions.add(w.getName()));
                 case "gamerule" -> {
                     for (GameRule<?> rule : GameRule.values()) completions.add(rule.getName());
                 }
