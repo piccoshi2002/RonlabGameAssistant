@@ -1,0 +1,149 @@
+# -----------------------------------------------
+# Ronlab Game Assistant - Minigame Configuration
+# -----------------------------------------------
+# world-type options:
+#   TEMPLATE - copies a premade template world
+#   VANILLA  - generates fresh interconnected overworld/nether/end
+#
+# For TEMPLATE type, template-world must match a world
+# marked as template: true in worlds.yml
+# -----------------------------------------------
+
+minigames:
+
+  manhunt:
+    name: "Manhunt"
+    display-item: COMPASS
+    display-lore:
+      - "&7Runners try to beat the game."
+      - "&7Hunters try to stop them."
+      - "&7First to kill the Ender Dragon wins!"
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game2:
+    name: "Minigame 2"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game3:
+    name: "Minigame 3"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game4:
+    name: "Minigame 4"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game5:
+    name: "Minigame 5"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game6:
+    name: "Minigame 6"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game7:
+    name: "Minigame 7"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game8:
+    name: "Minigame 8"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game9:
+    name: "Minigame 9"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game10:
+    name: "Minigame 10"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game11:
+    name: "Minigame 11"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game12:
+    name: "Minigame 12"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game13:
+    name: "Minigame 13"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game14:
+    name: "Minigame 14"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
+
+  game15:
+    name: "Minigame 15"
+    display-item: STONE
+    display-lore:
+      - "&7Coming soon."
+    max-players: 8
+    min-players: 2
+    world-type: VANILLA
