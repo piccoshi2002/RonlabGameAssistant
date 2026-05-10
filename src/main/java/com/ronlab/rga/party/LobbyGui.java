@@ -22,8 +22,11 @@ public class LobbyGui implements Listener {
     private static final String LOBBY_TITLE_PREFIX = "§8§l";
     private static final int GUI_SIZE = 54;
 
-    // Track which players have the lobby GUI open
+    // Players currently in the lobby GUI
     private final Set<UUID> openLobbyPlayers = new HashSet<>();
+
+    // Players being refreshed — suppress close removal during refresh
+    private final Set<UUID> refreshing = new HashSet<>();
 
     public LobbyGui(RGA plugin) {
         this.plugin = plugin;
@@ -31,9 +34,11 @@ public class LobbyGui implements Listener {
     }
 
     public void openLobby(Player player, Party party) {
+        // Mark as refreshing so onInventoryClose doesn't remove from openLobbyPlayers
+        refreshing.add(player.getUniqueId());
+
         Minigame minigame = party.getMinigame();
         String title = LOBBY_TITLE_PREFIX + minigame.getName() + " Lobby";
-
         Inventory inv = Bukkit.createInventory(null, GUI_SIZE, title);
 
         // ── Border ───────────────────────────────────────────────
@@ -89,7 +94,6 @@ public class LobbyGui implements Listener {
                 inv.setItem(slots[i], head);
 
             } else {
-                // Empty slot
                 ItemStack empty = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
                 ItemMeta emptyMeta = empty.getItemMeta();
                 emptyMeta.setDisplayName("§7Empty Slot");
@@ -132,6 +136,10 @@ public class LobbyGui implements Listener {
 
         openLobbyPlayers.add(player.getUniqueId());
         player.openInventory(inv);
+
+        // Done refreshing — remove flag on next tick after inventory opens
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> refreshing.remove(player.getUniqueId()), 1L);
     }
 
     // ── Event Handlers ───────────────────────────────────────────
@@ -139,11 +147,8 @@ public class LobbyGui implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-
-        // Use the openLobbyPlayers set as the primary check — more reliable than title matching
         if (!openLobbyPlayers.contains(player.getUniqueId())) return;
 
-        // Always cancel clicks in the lobby GUI
         event.setCancelled(true);
 
         if (event.getCurrentItem() == null) return;
@@ -172,7 +177,10 @@ public class LobbyGui implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
-        openLobbyPlayers.remove(player.getUniqueId());
+        // Don't remove from set if we're refreshing the lobby
+        if (!refreshing.contains(player.getUniqueId())) {
+            openLobbyPlayers.remove(player.getUniqueId());
+        }
     }
 
     @EventHandler
