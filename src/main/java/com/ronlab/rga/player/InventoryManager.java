@@ -23,10 +23,7 @@ public class InventoryManager implements Listener {
     private final RGA plugin;
     private final File dataFolder;
 
-    // Map of world name -> group name
     private final Map<String, String> worldToGroup = new HashMap<>();
-
-    // Players whose next world change should be ignored (login teleport)
     private final Set<UUID> ignoreNextWorldChange = new HashSet<>();
 
     public InventoryManager(RGA plugin) {
@@ -69,21 +66,15 @@ public class InventoryManager implements Listener {
         ignoreNextWorldChange.add(uuid);
     }
 
-    /**
-     * Registers a temporary inventory group for a minigame instance.
-     * All listed worlds share the same inventory during the game.
-     */
-    public void addTemporaryGroup(String groupName, String... worlds) {
+    public void addTemporaryGroup(String groupName, List<String> worlds) {
         for (String world : worlds) {
-            worldToGroup.put(world, groupName);
+            worldToGroup.put(world, "mg_" + groupName);
         }
     }
 
-    /**
-     * Removes a temporary inventory group when a minigame ends.
-     */
     public void removeTemporaryGroup(String groupName) {
-        worldToGroup.entrySet().removeIf(e -> e.getValue().equals(groupName));
+        String key = "mg_" + groupName;
+        worldToGroup.entrySet().removeIf(e -> e.getValue().equals(key));
     }
 
     // ── Events ───────────────────────────────────────────────────
@@ -213,19 +204,6 @@ public class InventoryManager implements Listener {
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
         player.setSaturation(5.0f);
-    }
-
-    // ── Temporary minigame groups ────────────────────────────────
-
-    public void addTemporaryGroup(String groupName, List<String> worlds) {
-        for (String world : worlds) {
-            worldToGroup.put(world, "mg_" + groupName);
-        }
-    }
-
-    public void removeTemporaryGroup(String groupName) {
-        String key = "mg_" + groupName;
-        worldToGroup.entrySet().removeIf(e -> e.getValue().equals(key));
     }
 
     private File getPlayerFile(UUID uuid) {
