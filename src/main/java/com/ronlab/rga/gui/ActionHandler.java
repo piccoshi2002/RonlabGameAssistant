@@ -50,17 +50,19 @@ public class ActionHandler {
 
         } else if (action.startsWith("tp ")) {
             String worldName = action.substring(3).trim();
-
-            // If the player is currently in an SMP world, save their location
-            // BEFORE teleporting them away
             String currentWorld = player.getWorld().getName();
             if (plugin.getConfigManager().getSmpWorlds().contains(currentWorld)) {
                 plugin.getLocationTracker().saveLocation(player, player.getLocation());
             }
-
             player.closeInventory();
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> plugin.getWorldManager().teleportToWorld(player, worldName), 1L);
+
+        } else if (action.startsWith("join_minigame ")) {
+            String minigameId = action.substring(14).trim();
+            player.closeInventory();
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> plugin.getPartyManager().joinMinigame(player, minigameId), 1L);
 
         } else if (action.equals("close")) {
             player.closeInventory();
