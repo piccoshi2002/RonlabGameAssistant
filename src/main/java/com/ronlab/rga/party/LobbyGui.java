@@ -40,14 +40,10 @@ public class LobbyGui implements Listener {
         ItemStack border = makeBorder();
         for (int i = 0; i < 9; i++) inv.setItem(i, border);
         for (int i = 45; i < 54; i++) inv.setItem(i, border);
-        inv.setItem(9, border);
-        inv.setItem(17, border);
-        inv.setItem(18, border);
-        inv.setItem(26, border);
-        inv.setItem(27, border);
-        inv.setItem(35, border);
-        inv.setItem(36, border);
-        inv.setItem(44, border);
+        inv.setItem(9, border);  inv.setItem(17, border);
+        inv.setItem(18, border); inv.setItem(26, border);
+        inv.setItem(27, border); inv.setItem(35, border);
+        inv.setItem(36, border); inv.setItem(44, border);
 
         // ── Game info item (top center) ──────────────────────────
         ItemStack info = new ItemStack(minigame.getDisplayItem());
@@ -61,12 +57,8 @@ public class LobbyGui implements Listener {
         info.setItemMeta(infoMeta);
         inv.setItem(4, info);
 
-        // ── Player slots (slots 10-17, 19-26, 28-35, 37-44) ─────
-        int[] playerSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25,
-                             28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
-        // We only need 8 slots max
-        int[] slots = Arrays.copyOf(playerSlots, minigame.getMaxPlayers());
-
+        // ── Player slots ─────────────────────────────────────────
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19};
         List<UUID> members = party.getMembers();
 
         for (int i = 0; i < slots.length; i++) {
@@ -79,24 +71,23 @@ public class LobbyGui implements Listener {
 
                 ItemStack head = new ItemStack(Material.PLAYER_HEAD);
                 SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
-
-                if (member != null) {
-                    skullMeta.setOwningPlayer(member);
-                }
+                if (member != null) skullMeta.setOwningPlayer(member);
 
                 String readyColor = isReady ? "§a" : "§c";
-                String readyStatus = isReady ? "✔ Ready" : "✘ Not Ready";
                 String name = member != null ? member.getName() : "Unknown";
 
                 skullMeta.setDisplayName(readyColor + name + (isLeader ? " §6★" : ""));
 
                 List<String> lore = new ArrayList<>();
-                lore.add(readyColor + readyStatus);
-                if (isSelf) lore.add("§eClick to toggle ready");
+                lore.add(readyColor + (isReady ? "✔ Ready" : "✘ Not Ready"));
+                if (isSelf) {
+                    lore.add("");
+                    lore.add(isReady ? "§eClick to unready" : "§eClick to ready up");
+                }
                 skullMeta.setLore(lore);
                 head.setItemMeta(skullMeta);
-
                 inv.setItem(slots[i], head);
+
             } else {
                 // Empty slot
                 ItemStack empty = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -115,21 +106,24 @@ public class LobbyGui implements Listener {
         leave.setItemMeta(leaveMeta);
         inv.setItem(49, leave);
 
-        // ── Status message (bottom left) ─────────────────────────
-        ItemStack status = new ItemStack(
-                party.allReady() ? Material.LIME_STAINED_GLASS_PANE
-                        : party.getMemberCount() < minigame.getMinPlayers()
-                        ? Material.RED_STAINED_GLASS_PANE
-                        : Material.YELLOW_STAINED_GLASS_PANE
-        );
-        ItemMeta statusMeta = status.getItemMeta();
+        // ── Status bar ───────────────────────────────────────────
+        ItemStack status;
+        ItemMeta statusMeta;
+
         if (party.getMemberCount() < minigame.getMinPlayers()) {
+            status = new ItemStack(Material.RED_STAINED_GLASS_PANE);
+            statusMeta = status.getItemMeta();
             statusMeta.setDisplayName("§cWaiting for more players...");
             statusMeta.setLore(List.of("§7Need at least §f" + minigame.getMinPlayers() + " §7to start."));
         } else if (party.allReady()) {
+            status = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
+            statusMeta = status.getItemMeta();
             statusMeta.setDisplayName("§a§lStarting game...");
+            statusMeta.setLore(List.of());
         } else {
             int notReady = party.getMemberCount() - party.getReadyPlayers().size();
+            status = new ItemStack(Material.YELLOW_STAINED_GLASS_PANE);
+            statusMeta = status.getItemMeta();
             statusMeta.setDisplayName("§eWaiting for players to ready up...");
             statusMeta.setLore(List.of("§f" + notReady + " §7player(s) not ready."));
         }
@@ -145,11 +139,11 @@ public class LobbyGui implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        // Use the openLobbyPlayers set as the primary check — more reliable than title matching
         if (!openLobbyPlayers.contains(player.getUniqueId())) return;
 
-        String title = event.getView().getTitle();
-        if (!title.startsWith(LOBBY_TITLE_PREFIX)) return;
-
+        // Always cancel clicks in the lobby GUI
         event.setCancelled(true);
 
         if (event.getCurrentItem() == null) return;
@@ -163,14 +157,8 @@ public class LobbyGui implements Listener {
             return;
         }
 
-        // Player head slots — clicking your own head toggles ready
-        Party party = plugin.getPartyManager().getPartyForPlayer(player.getUniqueId());
-        if (party == null) return;
-
-        // Check if clicked slot is a player head
+        // Clicking a player head — toggle ready if it's the player's own head
         if (event.getCurrentItem().getType() == Material.PLAYER_HEAD) {
-            // Only let them toggle if it's their own head
-            // We identify this by checking if the skull owner matches the player
             ItemMeta meta = event.getCurrentItem().getItemMeta();
             if (meta instanceof SkullMeta skullMeta) {
                 if (skullMeta.getOwningPlayer() != null &&
