@@ -1,6 +1,7 @@
 package com.ronlab.rga.party;
 
 import com.ronlab.rga.RGA;
+import com.ronlab.rga.minigame.Minigame;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
