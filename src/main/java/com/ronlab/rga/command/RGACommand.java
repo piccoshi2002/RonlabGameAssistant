@@ -235,7 +235,8 @@ public class RGACommand implements CommandExecutor, TabCompleter {
 
             case "conclude" -> {
                 if (args.length < 2) { sender.sendMessage("§cUsage: /rga conclude <worldname>"); return true; }
-                sender.sendMessage("§eMinigame conclude coming in Stage 3.");
+                plugin.getPartyManager().concludeGame(args[1]);
+                sender.sendMessage("§aGame concluded for world: " + args[1]);
             }
 
             default -> sendHelp(sender);
