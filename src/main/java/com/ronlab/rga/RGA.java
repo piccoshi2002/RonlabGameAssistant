@@ -7,6 +7,9 @@ import com.ronlab.rga.compass.HubListener;
 import com.ronlab.rga.config.ConfigManager;
 import com.ronlab.rga.gui.MenuListener;
 import com.ronlab.rga.gui.MenuManager;
+import com.ronlab.rga.minigame.MinigameManager;
+import com.ronlab.rga.party.LobbyGui;
+import com.ronlab.rga.party.PartyManager;
 import com.ronlab.rga.player.InventoryManager;
 import com.ronlab.rga.player.LocationTracker;
 import com.ronlab.rga.world.WorldEnforcementListener;
@@ -23,6 +26,9 @@ public class RGA extends JavaPlugin {
     private MenuManager menuManager;
     private LocationTracker locationTracker;
     private InventoryManager inventoryManager;
+    private MinigameManager minigameManager;
+    private PartyManager partyManager;
+    private LobbyGui lobbyGui;
     private HubListener hubListener;
 
     @Override
@@ -32,12 +38,16 @@ public class RGA extends JavaPlugin {
         saveDefaultConfig();
         saveResource("worlds.yml", false);
         saveResource("menus.yml", false);
+        saveResource("minigames.yml", false);
 
         configManager = new ConfigManager(this);
         locationTracker = new LocationTracker(this);
         inventoryManager = new InventoryManager(this);
         worldManager = new WorldManager(this);
         menuManager = new MenuManager(this);
+        minigameManager = new MinigameManager(this);
+        lobbyGui = new LobbyGui(this);
+        partyManager = new PartyManager(this);
 
         worldManager.loadConfiguredWorlds();
 
@@ -71,6 +81,7 @@ public class RGA extends JavaPlugin {
         configManager.reload();
         menuManager.reload();
         inventoryManager.reload();
+        minigameManager.reload();
         worldManager.loadConfiguredWorlds();
         getLogger().info("Ronlab Game Assistant reloaded.");
     }
@@ -81,5 +92,8 @@ public class RGA extends JavaPlugin {
     public MenuManager getMenuManager() { return menuManager; }
     public LocationTracker getLocationTracker() { return locationTracker; }
     public InventoryManager getInventoryManager() { return inventoryManager; }
+    public MinigameManager getMinigameManager() { return minigameManager; }
+    public PartyManager getPartyManager() { return partyManager; }
+    public LobbyGui getLobbyGui() { return lobbyGui; }
     public HubListener getHubListener() { return hubListener; }
 }
