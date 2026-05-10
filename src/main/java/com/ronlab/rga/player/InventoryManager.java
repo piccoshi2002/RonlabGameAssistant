@@ -38,7 +38,17 @@ public class InventoryManager implements Listener {
     }
 
     public void reload() {
+        // Preserve temporary minigame groups across reloads
+        Map<String, String> tempEntries = new HashMap<>();
+        for (Map.Entry<String, String> entry : worldToGroup.entrySet()) {
+            if (entry.getValue().startsWith("mg_")) {
+                tempEntries.put(entry.getKey(), entry.getValue());
+            }
+        }
+
         worldToGroup.clear();
+        worldToGroup.putAll(tempEntries);
+
         ConfigurationSection groups = plugin.getConfig().getConfigurationSection("inventory-groups");
         if (groups == null) {
             plugin.getLogger().warning("No inventory-groups section found in config.yml!");
@@ -55,13 +65,25 @@ public class InventoryManager implements Listener {
 
     // ── Public API ───────────────────────────────────────────────
 
-    /**
-     * Called by HubListener when a player joins or teleports to Hub on login.
-     * Marks them to ignore the next world change so the login teleport
-     * doesn't corrupt their saved inventories.
-     */
     public void markIgnoreNextWorldChange(UUID uuid) {
         ignoreNextWorldChange.add(uuid);
+    }
+
+    /**
+     * Registers a temporary inventory group for a minigame instance.
+     * All listed worlds share the same inventory during the game.
+     */
+    public void addTemporaryGroup(String groupName, String... worlds) {
+        for (String world : worlds) {
+            worldToGroup.put(world, groupName);
+        }
+    }
+
+    /**
+     * Removes a temporary inventory group when a minigame ends.
+     */
+    public void removeTemporaryGroup(String groupName) {
+        worldToGroup.entrySet().removeIf(e -> e.getValue().equals(groupName));
     }
 
     // ── Events ───────────────────────────────────────────────────
@@ -71,7 +93,6 @@ public class InventoryManager implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        // Skip world changes caused by our login teleport
         if (ignoreNextWorldChange.remove(uuid)) return;
 
         String fromWorld = event.getFrom().getName();
@@ -81,17 +102,13 @@ public class InventoryManager implements Listener {
         String fromGroup = getGroup(fromWorld);
         String toGroup = getGroup(toWorld);
 
-        // If moving within the same group, do nothing
         if (fromGroup.equals(toGroup)) return;
 
-        // Save inventory for the group they're leaving (unless leaving Hub)
         if (!fromWorld.equalsIgnoreCase(hubWorld)) {
             saveInventory(player, fromGroup);
         }
 
-        // Load inventory for group they're entering, or clear for Hub
         if (toWorld.equalsIgnoreCase(hubWorld)) {
-            // Clear inventory — HubListener will give the compass afterwards
             clearPlayer(player);
         } else {
             loadInventory(player, toGroup);
@@ -104,7 +121,6 @@ public class InventoryManager implements Listener {
         String currentWorld = player.getWorld().getName();
         String hubWorld = plugin.getConfigManager().getHubWorld();
 
-        // Save inventory on logout unless in Hub
         if (!currentWorld.equalsIgnoreCase(hubWorld)) {
             saveInventory(player, getGroup(currentWorld));
         }
@@ -117,33 +133,23 @@ public class InventoryManager implements Listener {
     public void saveInventory(Player player, String group) {
         File file = getPlayerFile(player.getUniqueId());
         FileConfiguration data = YamlConfiguration.loadConfiguration(file);
-
         String path = group;
 
-        // Inventory contents (slots 0-35)
         ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             data.set(path + ".inventory." + i, contents[i]);
         }
 
-        // Armor
         ItemStack[] armor = player.getInventory().getArmorContents();
         for (int i = 0; i < armor.length; i++) {
             data.set(path + ".armor." + i, armor[i]);
         }
 
-        // Offhand
         data.set(path + ".offhand", player.getInventory().getItemInOffHand());
-
-        // Held item slot
         data.set(path + ".heldSlot", player.getInventory().getHeldItemSlot());
-
-        // Experience
         data.set(path + ".exp", player.getExp());
         data.set(path + ".level", player.getLevel());
         data.set(path + ".totalExp", player.getTotalExperience());
-
-        // Health and hunger
         data.set(path + ".health", player.getHealth());
         data.set(path + ".foodLevel", player.getFoodLevel());
         data.set(path + ".saturation", player.getSaturation());
@@ -156,7 +162,6 @@ public class InventoryManager implements Listener {
     }
 
     public void loadInventory(Player player, String group) {
-        // Clear first
         clearPlayer(player);
 
         File file = getPlayerFile(player.getUniqueId());
@@ -166,33 +171,26 @@ public class InventoryManager implements Listener {
         String path = group;
         if (!data.contains(path)) return;
 
-        // Inventory contents
         ItemStack[] contents = new ItemStack[36];
         for (int i = 0; i < 36; i++) {
             contents[i] = data.getItemStack(path + ".inventory." + i);
         }
         player.getInventory().setContents(contents);
 
-        // Armor
         ItemStack[] armor = new ItemStack[4];
         for (int i = 0; i < 4; i++) {
             armor[i] = data.getItemStack(path + ".armor." + i);
         }
         player.getInventory().setArmorContents(armor);
 
-        // Offhand
         ItemStack offhand = data.getItemStack(path + ".offhand");
         if (offhand != null) player.getInventory().setItemInOffHand(offhand);
 
-        // Held item slot
         player.getInventory().setHeldItemSlot(data.getInt(path + ".heldSlot", 0));
-
-        // Experience
         player.setExp((float) data.getDouble(path + ".exp", 0));
         player.setLevel(data.getInt(path + ".level", 0));
         player.setTotalExperience(data.getInt(path + ".totalExp", 0));
 
-        // Health and hunger
         double health = data.getDouble(path + ".health", 20.0);
         player.setHealth(Math.min(health, player.getMaxHealth()));
         player.setFoodLevel(data.getInt(path + ".foodLevel", 20));
@@ -215,6 +213,19 @@ public class InventoryManager implements Listener {
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
         player.setSaturation(5.0f);
+    }
+
+    // ── Temporary minigame groups ────────────────────────────────
+
+    public void addTemporaryGroup(String groupName, List<String> worlds) {
+        for (String world : worlds) {
+            worldToGroup.put(world, "mg_" + groupName);
+        }
+    }
+
+    public void removeTemporaryGroup(String groupName) {
+        String key = "mg_" + groupName;
+        worldToGroup.entrySet().removeIf(e -> e.getValue().equals(key));
     }
 
     private File getPlayerFile(UUID uuid) {
