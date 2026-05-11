@@ -14,10 +14,12 @@ public class MenuItemDefinition {
     private final List<String> rightClick;
     private final boolean showPlayerCount;
     private final String playerCountWorld;
+    private final String minigameId;
 
     public MenuItemDefinition(Material material, String name, List<String> lore,
                                int slot, List<String> leftClick, List<String> rightClick,
-                               boolean showPlayerCount, String playerCountWorld) {
+                               boolean showPlayerCount, String playerCountWorld,
+                               String minigameId) {
         this.material = material;
         this.name = name;
         this.lore = lore;
@@ -26,6 +28,7 @@ public class MenuItemDefinition {
         this.rightClick = rightClick;
         this.showPlayerCount = showPlayerCount;
         this.playerCountWorld = playerCountWorld;
+        this.minigameId = minigameId;
     }
 
     public Material getMaterial() { return material; }
@@ -36,4 +39,5 @@ public class MenuItemDefinition {
     public List<String> getRightClick() { return rightClick; }
     public boolean isShowPlayerCount() { return showPlayerCount; }
     public String getPlayerCountWorld() { return playerCountWorld; }
+    public String getMinigameId() { return minigameId; }
 }
