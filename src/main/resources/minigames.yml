@@ -5,8 +5,24 @@
 #   TEMPLATE - copies a premade template world
 #   VANILLA  - generates fresh interconnected overworld/nether/end
 #
-# For TEMPLATE type, template-world must match a world
-# marked as template: true in worlds.yml
+# start-commands - run automatically after all players are teleported in
+#   Prefixes:
+#     console:     - runs as console (default if no prefix)
+#     console:     - runs as console (default if no prefix)
+#     player-each: - runs once per player, %player% = each player's name
+#     leader:      - runs as the party leader player (use for GUI commands)
+#
+#   Placeholders:
+#     %world%   - the generated world name
+#     %leader%  - party leader's name
+#     %players% - comma-separated list of all player names
+#     %player%  - used with player-each prefix only
+#
+# Examples:
+#   start-commands:
+#     - "console: manhunt start %world%"
+#     - "console: team assign runner %leader%"
+#     - "player-each: tell %player% Good luck!"
 # -----------------------------------------------
 
 minigames:
@@ -21,6 +37,17 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
+    world-settings:
+      gamemode: SURVIVAL
+      pvp: true
+      difficulty: NORMAL
+      gamerules:
+        showLocatorBar: false
+        keepInventory: false
+        announceAdvancements: false
+        doImmediateRespawn: false
+        naturalRegeneration: true
 
   game2:
     name: "Minigame 2"
@@ -30,6 +57,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game3:
     name: "Minigame 3"
@@ -39,6 +67,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game4:
     name: "Minigame 4"
@@ -48,6 +77,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game5:
     name: "Minigame 5"
@@ -57,6 +87,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game6:
     name: "Minigame 6"
@@ -66,6 +97,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game7:
     name: "Minigame 7"
@@ -75,6 +107,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game8:
     name: "Minigame 8"
@@ -84,6 +117,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game9:
     name: "Minigame 9"
@@ -93,6 +127,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game10:
     name: "Minigame 10"
@@ -102,6 +137,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game11:
     name: "Minigame 11"
@@ -111,6 +147,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game12:
     name: "Minigame 12"
@@ -120,6 +157,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game13:
     name: "Minigame 13"
@@ -129,6 +167,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game14:
     name: "Minigame 14"
@@ -138,6 +177,7 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
 
   game15:
     name: "Minigame 15"
@@ -147,3 +187,4 @@ minigames:
     max-players: 8
     min-players: 2
     world-type: VANILLA
+    start-commands: []
