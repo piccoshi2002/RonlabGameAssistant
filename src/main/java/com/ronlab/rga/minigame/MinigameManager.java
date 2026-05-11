@@ -2,6 +2,8 @@ package com.ronlab.rga.minigame;
 
 import com.ronlab.rga.RGA;
 import org.bukkit.ChatColor;
+import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -63,16 +65,44 @@ public class MinigameManager {
             }
 
             String templateWorld = mg.getString("template-world", null);
-            if (worldType == Minigame.WorldType.TEMPLATE && templateWorld == null) {
-                plugin.getLogger().warning("Minigame '" + id
-                        + "' is TEMPLATE type but has no template-world set!");
-            }
-
-            // Load start commands
             List<String> startCommands = mg.getStringList("start-commands");
 
+            // ── World settings ────────────────────────────────────
+            ConfigurationSection ws = mg.getConfigurationSection("world-settings");
+
+            GameMode gameMode = GameMode.SURVIVAL;
+            boolean pvp = true;
+            Difficulty difficulty = Difficulty.NORMAL;
+            Map<String, String> gamerules = new LinkedHashMap<>();
+
+            if (ws != null) {
+                String gmStr = ws.getString("gamemode", "SURVIVAL").toUpperCase();
+                try { gameMode = GameMode.valueOf(gmStr); }
+                catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid gamemode '" + gmStr
+                            + "' in world-settings for " + id + ". Defaulting to SURVIVAL.");
+                }
+
+                pvp = ws.getBoolean("pvp", true);
+
+                String diffStr = ws.getString("difficulty", "NORMAL").toUpperCase();
+                try { difficulty = Difficulty.valueOf(diffStr); }
+                catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid difficulty '" + diffStr
+                            + "' in world-settings for " + id + ". Defaulting to NORMAL.");
+                }
+
+                ConfigurationSection grSection = ws.getConfigurationSection("gamerules");
+                if (grSection != null) {
+                    for (String rule : grSection.getKeys(false)) {
+                        gamerules.put(rule, grSection.getString(rule, ""));
+                    }
+                }
+            }
+
             minigames.put(id, new Minigame(id, name, material, lore,
-                    maxPlayers, minPlayers, worldType, templateWorld, startCommands));
+                    maxPlayers, minPlayers, worldType, templateWorld,
+                    startCommands, gameMode, pvp, difficulty, gamerules));
         }
 
         plugin.getLogger().info("Loaded " + minigames.size() + " minigame(s) from minigames.yml.");
