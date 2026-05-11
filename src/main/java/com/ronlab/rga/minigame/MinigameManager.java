@@ -24,9 +24,7 @@ public class MinigameManager {
         minigames.clear();
 
         File file = new File(plugin.getDataFolder(), "minigames.yml");
-        if (!file.exists()) {
-            plugin.saveResource("minigames.yml", false);
-        }
+        if (!file.exists()) plugin.saveResource("minigames.yml", false);
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
         ConfigurationSection section = config.getConfigurationSection("minigames");
@@ -59,27 +57,27 @@ public class MinigameManager {
             try {
                 worldType = Minigame.WorldType.valueOf(worldTypeStr);
             } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("Invalid world-type '" + worldTypeStr + "' for minigame " + id + ". Defaulting to VANILLA.");
+                plugin.getLogger().warning("Invalid world-type '" + worldTypeStr
+                        + "' for minigame " + id + ". Defaulting to VANILLA.");
                 worldType = Minigame.WorldType.VANILLA;
             }
 
             String templateWorld = mg.getString("template-world", null);
             if (worldType == Minigame.WorldType.TEMPLATE && templateWorld == null) {
-                plugin.getLogger().warning("Minigame '" + id + "' is TEMPLATE type but has no template-world set!");
+                plugin.getLogger().warning("Minigame '" + id
+                        + "' is TEMPLATE type but has no template-world set!");
             }
 
+            // Load start commands
+            List<String> startCommands = mg.getStringList("start-commands");
+
             minigames.put(id, new Minigame(id, name, material, lore,
-                    maxPlayers, minPlayers, worldType, templateWorld));
+                    maxPlayers, minPlayers, worldType, templateWorld, startCommands));
         }
 
         plugin.getLogger().info("Loaded " + minigames.size() + " minigame(s) from minigames.yml.");
     }
 
-    public Minigame getMinigame(String id) {
-        return minigames.get(id);
-    }
-
-    public Map<String, Minigame> getAllMinigames() {
-        return Collections.unmodifiableMap(minigames);
-    }
+    public Minigame getMinigame(String id) { return minigames.get(id); }
+    public Map<String, Minigame> getAllMinigames() { return Collections.unmodifiableMap(minigames); }
 }
