@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
 
 public class MinigameWorldListener implements Listener {
 
@@ -37,44 +36,37 @@ public class MinigameWorldListener implements Listener {
 
         if (cause == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL) {
             if (currentWorld.equals(baseName)) {
-                // Overworld → Nether
+                // Overworld → Nether: redirect to minigame nether
                 World nether = Bukkit.getWorld(baseName + "_the_nether");
                 if (nether != null) {
-                    event.setCancelled(true);
-                    // Calculate nether coordinates (divide by 8)
-                    Location from = player.getLocation();
-                    Location dest = new Location(nether,
-                            from.getX() / 8, from.getY(), from.getZ() / 8,
-                            from.getYaw(), from.getPitch());
-                    player.teleport(dest);
+                    event.setTo(new Location(nether,
+                            player.getLocation().getX() / 8,
+                            player.getLocation().getY(),
+                            player.getLocation().getZ() / 8));
+                    // Let Paper handle portal frame creation
                 }
             } else if (currentWorld.equals(baseName + "_the_nether")) {
-                // Nether → Overworld
+                // Nether → Overworld: redirect to minigame overworld
                 World overworld = Bukkit.getWorld(baseName);
                 if (overworld != null) {
-                    event.setCancelled(true);
-                    // Calculate overworld coordinates (multiply by 8)
-                    Location from = player.getLocation();
-                    Location dest = new Location(overworld,
-                            from.getX() * 8, from.getY(), from.getZ() * 8,
-                            from.getYaw(), from.getPitch());
-                    player.teleport(dest);
+                    event.setTo(new Location(overworld,
+                            player.getLocation().getX() * 8,
+                            player.getLocation().getY(),
+                            player.getLocation().getZ() * 8));
                 }
             }
         } else if (cause == PlayerTeleportEvent.TeleportCause.END_PORTAL) {
             if (currentWorld.equals(baseName)) {
-                // Overworld → End
+                // Overworld → End: redirect to minigame end
                 World end = Bukkit.getWorld(baseName + "_the_end");
                 if (end != null) {
-                    event.setCancelled(true);
-                    player.teleport(end.getSpawnLocation());
+                    event.setTo(end.getSpawnLocation());
                 }
             } else if (currentWorld.equals(baseName + "_the_end")) {
-                // End → Overworld (End exit portal / dragon death)
+                // End exit portal → minigame overworld
                 World overworld = Bukkit.getWorld(baseName);
                 if (overworld != null) {
-                    event.setCancelled(true);
-                    player.teleport(overworld.getSpawnLocation());
+                    event.setTo(overworld.getSpawnLocation());
                 }
             }
         }
