@@ -6,10 +6,13 @@ import com.ronlab.rga.minigame.WorldCopyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
 
-public class PartyManager {
+public class PartyManager implements Listener {
 
     private final RGA plugin;
     private final WorldCopyManager worldCopyManager;
@@ -23,6 +26,45 @@ public class PartyManager {
     public PartyManager(RGA plugin) {
         this.plugin = plugin;
         this.worldCopyManager = new WorldCopyManager(plugin);
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    // ── Disconnect handling ──────────────────────────────────────
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        Party party = playerParties.get(player.getUniqueId());
+        if (party == null) return;
+
+        // If in game, handle differently — treat as a leave
+        if (party.getState() == Party.State.IN_GAME) {
+            playerParties.remove(player.getUniqueId());
+            party.removeMember(player.getUniqueId());
+
+            // If no members left in game, conclude automatically
+            if (party.getMemberCount() == 0 && party.getActiveWorldName() != null) {
+                concludeGame(party.getActiveWorldName());
+            }
+            return;
+        }
+
+        // In lobby — handle leader transfer before removing
+        if (player.getUniqueId().equals(party.getLeaderUuid())) {
+            transferLeader(party, player.getUniqueId());
+        }
+
+        party.removeMember(player.getUniqueId());
+        playerParties.remove(player.getUniqueId());
+
+        if (party.getMemberCount() == 0) {
+            activeParties.remove(party.getMinigameId());
+            return;
+        }
+
+        broadcastToParty(party, "§e" + player.getName() + " §cdisconnected from the party. §7("
+                + party.getMemberCount() + "/" + party.getMinigame().getMaxPlayers() + ")", null);
+        refreshLobbyForAll(party);
     }
 
     // ── Join / Leave ─────────────────────────────────────────────
@@ -34,8 +76,15 @@ public class PartyManager {
             return;
         }
 
-        // If player is already in a party, leave it first
-        if (playerParties.containsKey(player.getUniqueId())) {
+        // If player is already in a party for THIS minigame, just reopen the lobby
+        Party existingParty = playerParties.get(player.getUniqueId());
+        if (existingParty != null && existingParty.getMinigameId().equals(minigameId)) {
+            plugin.getLobbyGui().openLobby(player, existingParty);
+            return;
+        }
+
+        // If player is in a different party, leave it first
+        if (existingParty != null) {
             leaveParty(player);
         }
 
@@ -55,13 +104,10 @@ public class PartyManager {
             party.addMember(player.getUniqueId());
             playerParties.put(player.getUniqueId(), party);
             player.sendMessage("§aJoined the party for §6" + minigame.getName() + "§a!");
-
-            // Notify existing members
             broadcastToParty(party, "§e" + player.getName() + " §ajoined the party! §7("
                     + party.getMemberCount() + "/" + minigame.getMaxPlayers() + ")", player.getUniqueId());
         }
 
-        // Open lobby GUI for all party members
         refreshLobbyForAll(party);
     }
 
@@ -69,21 +115,24 @@ public class PartyManager {
         Party party = playerParties.remove(player.getUniqueId());
         if (party == null) return;
 
+        boolean wasLeader = player.getUniqueId().equals(party.getLeaderUuid());
+
+        // Transfer leader before removing
+        if (wasLeader && party.getMemberCount() > 1) {
+            transferLeader(party, player.getUniqueId());
+        }
+
         party.removeMember(player.getUniqueId());
         player.sendMessage("§eYou left the party.");
         player.closeInventory();
 
-        // If party is now empty, disband it
         if (party.getMemberCount() == 0) {
             activeParties.remove(party.getMinigameId());
             return;
         }
 
-        // Notify remaining members
         broadcastToParty(party, "§e" + player.getName() + " §cleft the party. §7("
                 + party.getMemberCount() + "/" + party.getMinigame().getMaxPlayers() + ")", null);
-
-        // Refresh lobby for remaining members
         refreshLobbyForAll(party);
     }
 
@@ -96,14 +145,29 @@ public class PartyManager {
         party.setReady(player.getUniqueId(), nowReady);
 
         player.sendMessage(nowReady ? "§aYou are now ready!" : "§eYou are no longer ready.");
-        broadcastToParty(party, "§e" + player.getName() + (nowReady ? " §ais ready!" : " §eis no longer ready."), null);
+        broadcastToParty(party, "§e" + player.getName()
+                + (nowReady ? " §ais ready!" : " §eis no longer ready."), null);
 
-        // Refresh lobby GUI for all
         refreshLobbyForAll(party);
 
-        // Check if all ready
         if (party.allReady()) {
             startGame(party);
+        }
+    }
+
+    // ── Leader transfer ──────────────────────────────────────────
+
+    private void transferLeader(Party party, UUID currentLeaderUuid) {
+        // Find the next member who isn't the current leader
+        for (UUID uuid : party.getMembers()) {
+            if (!uuid.equals(currentLeaderUuid)) {
+                party.setLeader(uuid);
+                Player newLeader = Bukkit.getPlayer(uuid);
+                String newLeaderName = newLeader != null ? newLeader.getName() : "Unknown";
+                broadcastToParty(party,
+                        "§6" + newLeaderName + " §eis now the party leader.", null);
+                return;
+            }
         }
     }
 
@@ -116,13 +180,11 @@ public class PartyManager {
         broadcastToParty(party, "§a§lAll players ready! Starting §6§l"
                 + minigame.getName() + "§a§l...", null);
 
-        // Close all lobby GUIs
         for (UUID uuid : party.getMembers()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null) p.closeInventory();
         }
 
-        // Create the world on the next tick to avoid inventory close conflicts
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             String worldName = null;
 
@@ -142,13 +204,11 @@ public class PartyManager {
 
             party.setActiveWorldName(worldName);
 
-            // Register world as a temporary inventory group so dimensions share inventory
             if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
                 plugin.getInventoryManager().addTemporaryGroup(worldName,
                         List.of(worldName, worldName + "_nether", worldName + "_the_end"));
             }
 
-            // Teleport all players
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
                 broadcastToParty(party, "§cGame world failed to load. Please try again.", null);
@@ -171,7 +231,6 @@ public class PartyManager {
     // ── Game End ─────────────────────────────────────────────────
 
     public void concludeGame(String worldName) {
-        // Find the party associated with this world
         Party party = null;
         for (Party p : activeParties.values()) {
             if (worldName.equals(p.getActiveWorldName())) {
@@ -186,9 +245,8 @@ public class PartyManager {
         }
 
         Minigame minigame = party.getMinigame();
-
-        // Teleport all players back to Hub
         World hub = Bukkit.getWorld(plugin.getConfigManager().getHubWorld());
+
         for (UUID uuid : party.getMembers()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null) {
@@ -197,18 +255,15 @@ public class PartyManager {
             }
         }
 
-        // Remove temporary inventory group
         if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
             plugin.getInventoryManager().removeTemporaryGroup(worldName);
         }
 
-        // Clean up player references
         for (UUID uuid : party.getMembers()) {
             playerParties.remove(uuid);
         }
         activeParties.remove(party.getMinigameId());
 
-        // Delete the game world(s) after a short delay so players finish teleporting
         String finalWorldName = worldName;
         boolean isVanilla = minigame.getWorldType() == Minigame.WorldType.VANILLA;
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -244,5 +299,9 @@ public class PartyManager {
 
     public Party getPartyForMinigame(String minigameId) {
         return activeParties.get(minigameId);
+    }
+
+    public Map<String, Party> getActiveParties() {
+        return Collections.unmodifiableMap(activeParties);
     }
 }
