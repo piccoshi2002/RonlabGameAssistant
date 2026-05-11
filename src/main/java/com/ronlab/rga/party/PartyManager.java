@@ -175,10 +175,9 @@ public class PartyManager implements Listener {
             String worldName = null;
 
             if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
-                worldName = worldCopyManager.createVanillaWorld(minigame.getId());
+                worldName = worldCopyManager.createVanillaWorld(minigame);
             } else {
-                worldName = worldCopyManager.copyTemplateWorld(
-                        minigame.getTemplateWorld(), minigame.getId());
+                worldName = worldCopyManager.copyTemplateWorld(minigame);
             }
 
             if (worldName == null) {
