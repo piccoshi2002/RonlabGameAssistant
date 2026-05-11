@@ -9,9 +9,9 @@ hub-world: "Hub"
 # The SMP worlds. Last locations are tracked and
 # restored for any world listed here.
 smp-worlds:
-  - "SMP"
-  - "SMP_nether"
-  - "SMP_end"
+  - "world"
+  - "world_nether"
+  - "world_the_end"
 
 # Compass item settings
 compass:
@@ -22,6 +22,33 @@ compass:
     - "&7World Navigator menu."
   slot: 8
   remove-on-leave-hub: true
+
+# -----------------------------------------------
+# Inventory Groups
+# -----------------------------------------------
+# Worlds in the same group share an inventory.
+# Worlds not listed here get their own isolated
+# inventory automatically.
+# Hub is always cleared on entry — do not add it
+# to any group.
+# -----------------------------------------------
+inventory-groups:
+  smp:
+    worlds:
+      - "world"
+      - "world_nether"
+      - "world_the_end"
+  creative:
+    worlds:
+      - "Creative"
+  adventure:
+    worlds:
+      - "Adventure"
+  parkour:
+    worlds:
+      - "ParkourMap1"
+      - "ParkourMap2"
+      - "ParkourMap3"
 
 # Messages sent to players (supports & color codes)
 messages:
