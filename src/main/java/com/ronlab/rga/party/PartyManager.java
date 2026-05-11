@@ -11,16 +11,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PartyManager implements Listener {
 
     private final RGA plugin;
     private final WorldCopyManager worldCopyManager;
 
-    // One active party per minigame ID
     private final Map<String, Party> activeParties = new HashMap<>();
-
-    // Player UUID -> party they're in
     private final Map<UUID, Party> playerParties = new HashMap<>();
 
     public PartyManager(RGA plugin) {
@@ -37,19 +35,15 @@ public class PartyManager implements Listener {
         Party party = playerParties.get(player.getUniqueId());
         if (party == null) return;
 
-        // If in game, handle differently — treat as a leave
         if (party.getState() == Party.State.IN_GAME) {
             playerParties.remove(player.getUniqueId());
             party.removeMember(player.getUniqueId());
-
-            // If no members left in game, conclude automatically
             if (party.getMemberCount() == 0 && party.getActiveWorldName() != null) {
                 concludeGame(party.getActiveWorldName());
             }
             return;
         }
 
-        // In lobby — handle leader transfer before removing
         if (player.getUniqueId().equals(party.getLeaderUuid())) {
             transferLeader(party, player.getUniqueId());
         }
@@ -76,22 +70,19 @@ public class PartyManager implements Listener {
             return;
         }
 
-        // If player is already in a party for THIS minigame, just reopen the lobby
+        // Already in a party for this minigame — just reopen lobby
         Party existingParty = playerParties.get(player.getUniqueId());
         if (existingParty != null && existingParty.getMinigameId().equals(minigameId)) {
             plugin.getLobbyGui().openLobby(player, existingParty);
             return;
         }
 
-        // If player is in a different party, leave it first
-        if (existingParty != null) {
-            leaveParty(player);
-        }
+        // In a different party — leave first
+        if (existingParty != null) leaveParty(player);
 
         Party party = activeParties.get(minigameId);
 
         if (party == null || party.getState() == Party.State.IN_GAME) {
-            // Create a new party
             party = new Party(player.getUniqueId(), minigame);
             activeParties.put(minigameId, party);
             playerParties.put(player.getUniqueId(), party);
@@ -100,12 +91,12 @@ public class PartyManager implements Listener {
             player.sendMessage("§cThe party for §6" + minigame.getName() + "§c is full!");
             return;
         } else {
-            // Join existing party
             party.addMember(player.getUniqueId());
             playerParties.put(player.getUniqueId(), party);
             player.sendMessage("§aJoined the party for §6" + minigame.getName() + "§a!");
             broadcastToParty(party, "§e" + player.getName() + " §ajoined the party! §7("
-                    + party.getMemberCount() + "/" + minigame.getMaxPlayers() + ")", player.getUniqueId());
+                    + party.getMemberCount() + "/" + minigame.getMaxPlayers() + ")",
+                    player.getUniqueId());
         }
 
         refreshLobbyForAll(party);
@@ -116,8 +107,6 @@ public class PartyManager implements Listener {
         if (party == null) return;
 
         boolean wasLeader = player.getUniqueId().equals(party.getLeaderUuid());
-
-        // Transfer leader before removing
         if (wasLeader && party.getMemberCount() > 1) {
             transferLeader(party, player.getUniqueId());
         }
@@ -150,15 +139,12 @@ public class PartyManager implements Listener {
 
         refreshLobbyForAll(party);
 
-        if (party.allReady()) {
-            startGame(party);
-        }
+        if (party.allReady()) startGame(party);
     }
 
     // ── Leader transfer ──────────────────────────────────────────
 
     private void transferLeader(Party party, UUID currentLeaderUuid) {
-        // Find the next member who isn't the current leader
         for (UUID uuid : party.getMembers()) {
             if (!uuid.equals(currentLeaderUuid)) {
                 party.setLeader(uuid);
@@ -216,16 +202,63 @@ public class PartyManager implements Listener {
                 return;
             }
 
+            // Teleport all players
+            List<String> playerNames = new ArrayList<>();
+            Player leaderPlayer = Bukkit.getPlayer(party.getLeaderUuid());
+            String leaderName = leaderPlayer != null ? leaderPlayer.getName() : "";
+
             for (UUID uuid : party.getMembers()) {
                 Player p = Bukkit.getPlayer(uuid);
                 if (p != null) {
                     p.teleport(world.getSpawnLocation());
                     p.setGameMode(org.bukkit.GameMode.SURVIVAL);
                     p.sendMessage("§aThe game has started! Good luck!");
+                    playerNames.add(p.getName());
                 }
             }
 
+            // Build %players% placeholder value
+            String allPlayers = String.join(",", playerNames);
+
+            // Execute start commands
+            if (!minigame.getStartCommands().isEmpty()) {
+                executeStartCommands(minigame.getStartCommands(), worldName,
+                        leaderName, allPlayers, playerNames);
+            }
+
         }, 5L);
+    }
+
+    private void executeStartCommands(List<String> commands, String worldName,
+                                      String leaderName, String allPlayers,
+                                      List<String> playerNames) {
+        for (String command : commands) {
+            if (command.startsWith("player-each:")) {
+                // Run once per player, replacing %player% with each player's name
+                String cmd = command.substring("player-each:".length()).trim();
+                for (String playerName : playerNames) {
+                    String resolved = resolveCommand(cmd, worldName, leaderName,
+                            allPlayers, playerName);
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
+                }
+            } else {
+                // Default — run as console once
+                String cmd = command.startsWith("console:")
+                        ? command.substring("console:".length()).trim()
+                        : command.trim();
+                String resolved = resolveCommand(cmd, worldName, leaderName, allPlayers, "");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
+            }
+        }
+    }
+
+    private String resolveCommand(String command, String worldName,
+                                   String leaderName, String allPlayers, String playerName) {
+        return command
+                .replace("%world%", worldName)
+                .replace("%leader%", leaderName)
+                .replace("%players%", allPlayers)
+                .replace("%player%", playerName);
     }
 
     // ── Game End ─────────────────────────────────────────────────
@@ -279,9 +312,7 @@ public class PartyManager implements Listener {
     public void refreshLobbyForAll(Party party) {
         for (UUID uuid : party.getMembers()) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null) {
-                plugin.getLobbyGui().openLobby(p, party);
-            }
+            if (p != null) plugin.getLobbyGui().openLobby(p, party);
         }
     }
 
@@ -293,15 +324,7 @@ public class PartyManager implements Listener {
         }
     }
 
-    public Party getPartyForPlayer(UUID uuid) {
-        return playerParties.get(uuid);
-    }
-
-    public Party getPartyForMinigame(String minigameId) {
-        return activeParties.get(minigameId);
-    }
-
-    public Map<String, Party> getActiveParties() {
-        return Collections.unmodifiableMap(activeParties);
-    }
+    public Party getPartyForPlayer(UUID uuid) { return playerParties.get(uuid); }
+    public Party getPartyForMinigame(String minigameId) { return activeParties.get(minigameId); }
+    public Map<String, Party> getActiveParties() { return Collections.unmodifiableMap(activeParties); }
 }
