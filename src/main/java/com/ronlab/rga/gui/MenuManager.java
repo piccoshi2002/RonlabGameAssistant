@@ -1,6 +1,7 @@
 package com.ronlab.rga.gui;
 
 import com.ronlab.rga.RGA;
+import com.ronlab.rga.party.Party;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -67,9 +68,10 @@ public class MenuManager {
                     List<String> rightClick = itemSection.getStringList("right_click");
                     boolean showPlayerCount = itemSection.getBoolean("show-player-count", false);
                     String playerCountWorld = itemSection.getString("player-count-world", "");
+                    String minigameId = itemSection.getString("minigame-id", "");
 
                     items.add(new MenuItemDefinition(material, name, lore, slot,
-                            leftClick, rightClick, showPlayerCount, playerCountWorld));
+                            leftClick, rightClick, showPlayerCount, playerCountWorld, minigameId));
                 }
             }
 
@@ -96,13 +98,29 @@ public class MenuManager {
             ItemMeta meta = stack.getItemMeta();
             meta.setDisplayName(item.getName());
 
-            // Build lore, injecting live player count if configured
             List<String> lore = new ArrayList<>(item.getLore());
+
+            // Inject live player count for world-based items
             if (item.isShowPlayerCount() && !item.getPlayerCountWorld().isEmpty()) {
                 int count = getPlayerCount(item.getPlayerCountWorld());
                 String playerWord = count == 1 ? "player" : "players";
                 lore.add("");
                 lore.add(ChatColor.YELLOW + "" + count + " " + playerWord + " online");
+            }
+
+            // Inject party size for minigame items
+            if (!item.getMinigameId().isEmpty()) {
+                Party party = plugin.getPartyManager().getPartyForMinigame(item.getMinigameId());
+                var minigame = plugin.getMinigameManager().getMinigame(item.getMinigameId());
+                if (party != null && party.getState() == Party.State.LOBBY) {
+                    lore.add("");
+                    lore.add(ChatColor.YELLOW + "" + party.getMemberCount() + "§7/§f"
+                            + (minigame != null ? minigame.getMaxPlayers() : "?")
+                            + " §eplayers in lobby");
+                } else {
+                    lore.add("");
+                    lore.add(ChatColor.GRAY + "No open party");
+                }
             }
 
             if (!lore.isEmpty()) meta.setLore(lore);
@@ -117,7 +135,6 @@ public class MenuManager {
     }
 
     private int getPlayerCount(String worldName) {
-        // Support comma-separated world names for grouped worlds like SMP
         String[] worlds = worldName.split(",");
         int count = 0;
         for (String w : worlds) {
