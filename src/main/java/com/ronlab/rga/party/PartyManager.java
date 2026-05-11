@@ -223,7 +223,7 @@ public class PartyManager implements Listener {
             // Execute start commands
             if (!minigame.getStartCommands().isEmpty()) {
                 executeStartCommands(minigame.getStartCommands(), worldName,
-                        leaderName, allPlayers, playerNames);
+                        leaderName, allPlayers, playerNames, leaderPlayer);
             }
 
         }, 5L);
@@ -231,14 +231,25 @@ public class PartyManager implements Listener {
 
     private void executeStartCommands(List<String> commands, String worldName,
                                       String leaderName, String allPlayers,
-                                      List<String> playerNames) {
+                                      List<String> playerNames, Player leaderPlayer) {
         for (String command : commands) {
             if (command.startsWith("player-each:")) {
-                // Run once per player, replacing %player% with each player's name
+                // Run once per player as console, %player% = each player's name
                 String cmd = command.substring("player-each:".length()).trim();
                 for (String playerName : playerNames) {
                     String resolved = resolveCommand(cmd, worldName, leaderName,
                             allPlayers, playerName);
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
+                }
+            } else if (command.startsWith("leader:")) {
+                // Run as the leader player — opens GUIs and player-only commands
+                String cmd = command.substring("leader:".length()).trim();
+                String resolved = resolveCommand(cmd, worldName, leaderName,
+                        allPlayers, leaderName);
+                if (leaderPlayer != null) {
+                    leaderPlayer.performCommand(resolved);
+                } else {
+                    // Fallback to console if leader is offline
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
                 }
             } else {
