@@ -8,6 +8,7 @@ import com.ronlab.rga.config.ConfigManager;
 import com.ronlab.rga.gui.MenuListener;
 import com.ronlab.rga.gui.MenuManager;
 import com.ronlab.rga.minigame.MinigameManager;
+import com.ronlab.rga.minigame.MinigameWorldListener;
 import com.ronlab.rga.party.LobbyGui;
 import com.ronlab.rga.party.PartyManager;
 import com.ronlab.rga.player.InventoryManager;
@@ -56,6 +57,7 @@ public class RGA extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CompassListener(this, menuManager, hubListener), this);
         getServer().getPluginManager().registerEvents(new MenuListener(this, menuManager), this);
         getServer().getPluginManager().registerEvents(new WorldEnforcementListener(this), this);
+        getServer().getPluginManager().registerEvents(new MinigameWorldListener(this), this);
 
         RGACommand rgaCommand = new RGACommand(this);
         PluginCommand rga = getCommand("rga");
