@@ -1,42 +1,28 @@
 # -----------------------------------------------
 # Ronlab Game Assistant - Menu Configuration
 # -----------------------------------------------
-# Action types:
-#   rga:open_menu <menu_name>   - opens another menu
-#   rga:last_location           - sends player to last SMP location
-#   rga:tp <world_name>         - teleports player to world spawn
-#   console:<command>           - runs command as console (%player% = player name)
-#   player:<command>            - runs command as player
-# -----------------------------------------------
-
 menus:
 
-  # ── Main Navigator Menu ──────────────────────────────────────
   navigator:
     title: "&8&lWorld Navigator"
     size: 27
     items:
-
       filler1:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 0
-
       filler2:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 8
-
       filler3:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 18
-
       filler4:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 26
-
       option1:
         material: GRASS_BLOCK
         name: "&a&lReturn to SMP"
@@ -44,33 +30,36 @@ menus:
           - "&7Return to your last known"
           - "&7location in the SMP."
         slot: 10
+        show-player-count: true
+        player-count-world: "world,world_nether,world_the_end"
         left_click:
           - "rga:last_location"
         right_click:
           - "rga:last_location"
-
       option2:
         material: DIAMOND_BLOCK
         name: "&b&lCreative World"
         lore:
           - "&7Enter the Creative world."
         slot: 11
+        show-player-count: true
+        player-count-world: "Creative"
         left_click:
           - "rga:tp Creative"
         right_click:
           - "rga:tp Creative"
-
       option3:
         material: MAP
         name: "&e&lAdventure Map"
         lore:
           - "&7Enter the Adventure map."
         slot: 12
+        show-player-count: true
+        player-count-world: "Adventure"
         left_click:
           - "rga:tp Adventure"
         right_click:
           - "rga:tp Adventure"
-
       option4:
         material: LEATHER_BOOTS
         name: "&d&lParkour"
@@ -79,11 +68,12 @@ menus:
           - ""
           - "&eClick to open"
         slot: 14
+        show-player-count: true
+        player-count-world: "ParkourMap1,ParkourMap2,ParkourMap3"
         left_click:
           - "rga:open_menu parkour"
         right_click:
           - "rga:open_menu parkour"
-
       option5:
         material: NETHER_STAR
         name: "&6&lMinigames"
@@ -97,32 +87,26 @@ menus:
         right_click:
           - "rga:open_menu minigames"
 
-  # ── Parkour Submenu ──────────────────────────────────────────
   parkour:
     title: "&8&lParkour Maps"
     size: 27
     items:
-
       filler1:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 0
-
       filler2:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 8
-
       filler3:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 18
-
       filler4:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 26
-
       back:
         material: ARROW
         name: "&7Back"
@@ -133,7 +117,6 @@ menus:
           - "rga:open_menu navigator"
         right_click:
           - "rga:open_menu navigator"
-
       map1:
         material: GOLD_BLOCK
         name: "&6&lParkour Map 1"
@@ -144,7 +127,6 @@ menus:
           - "rga:tp ParkourMap1"
         right_click:
           - "rga:tp ParkourMap1"
-
       map2:
         material: IRON_BLOCK
         name: "&7&lParkour Map 2"
@@ -155,7 +137,6 @@ menus:
           - "rga:tp ParkourMap2"
         right_click:
           - "rga:tp ParkourMap2"
-
       map3:
         material: EMERALD_BLOCK
         name: "&a&lParkour Map 3"
@@ -167,32 +148,26 @@ menus:
         right_click:
           - "rga:tp ParkourMap3"
 
-  # ── Minigames Submenu ────────────────────────────────────────
   minigames:
     title: "&8&lMinigames"
     size: 54
     items:
-
       filler1:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 0
-
       filler2:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 8
-
       filler3:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 45
-
       filler4:
         material: BLACK_STAINED_GLASS_PANE
         name: " "
         slot: 53
-
       back:
         material: ARROW
         name: "&7Back"
@@ -203,109 +178,171 @@ menus:
           - "rga:open_menu navigator"
         right_click:
           - "rga:open_menu navigator"
-
-      # Placeholder minigame slots - replace with rga:join_minigame <id> in Stage 3
-      game1:
-        material: STONE
-        name: "&8&lMinigame 1"
+      manhunt:
+        material: COMPASS
+        name: "&c&lManhunt"
         lore:
-          - "&7Coming soon."
+          - "&7Runners try to beat the game."
+          - "&7Hunters try to stop them."
+          - ""
+          - "&eClick to join!"
         slot: 10
-
+        minigame-id: manhunt
+        left_click:
+          - "rga:join_minigame manhunt"
+        right_click:
+          - "rga:join_minigame manhunt"
       game2:
         material: STONE
         name: "&8&lMinigame 2"
         lore:
           - "&7Coming soon."
         slot: 11
-
+        minigame-id: game2
+        left_click:
+          - "rga:join_minigame game2"
+        right_click:
+          - "rga:join_minigame game2"
       game3:
         material: STONE
         name: "&8&lMinigame 3"
         lore:
           - "&7Coming soon."
         slot: 12
-
+        minigame-id: game3
+        left_click:
+          - "rga:join_minigame game3"
+        right_click:
+          - "rga:join_minigame game3"
       game4:
         material: STONE
         name: "&8&lMinigame 4"
         lore:
           - "&7Coming soon."
         slot: 13
-
+        minigame-id: game4
+        left_click:
+          - "rga:join_minigame game4"
+        right_click:
+          - "rga:join_minigame game4"
       game5:
         material: STONE
         name: "&8&lMinigame 5"
         lore:
           - "&7Coming soon."
         slot: 14
-
+        minigame-id: game5
+        left_click:
+          - "rga:join_minigame game5"
+        right_click:
+          - "rga:join_minigame game5"
       game6:
         material: STONE
         name: "&8&lMinigame 6"
         lore:
           - "&7Coming soon."
         slot: 15
-
+        minigame-id: game6
+        left_click:
+          - "rga:join_minigame game6"
+        right_click:
+          - "rga:join_minigame game6"
       game7:
         material: STONE
         name: "&8&lMinigame 7"
         lore:
           - "&7Coming soon."
         slot: 16
-
+        minigame-id: game7
+        left_click:
+          - "rga:join_minigame game7"
+        right_click:
+          - "rga:join_minigame game7"
       game8:
         material: STONE
         name: "&8&lMinigame 8"
         lore:
           - "&7Coming soon."
         slot: 19
-
+        minigame-id: game8
+        left_click:
+          - "rga:join_minigame game8"
+        right_click:
+          - "rga:join_minigame game8"
       game9:
         material: STONE
         name: "&8&lMinigame 9"
         lore:
           - "&7Coming soon."
         slot: 20
-
+        minigame-id: game9
+        left_click:
+          - "rga:join_minigame game9"
+        right_click:
+          - "rga:join_minigame game9"
       game10:
         material: STONE
         name: "&8&lMinigame 10"
         lore:
           - "&7Coming soon."
         slot: 21
-
+        minigame-id: game10
+        left_click:
+          - "rga:join_minigame game10"
+        right_click:
+          - "rga:join_minigame game10"
       game11:
         material: STONE
         name: "&8&lMinigame 11"
         lore:
           - "&7Coming soon."
         slot: 22
-
+        minigame-id: game11
+        left_click:
+          - "rga:join_minigame game11"
+        right_click:
+          - "rga:join_minigame game11"
       game12:
         material: STONE
         name: "&8&lMinigame 12"
         lore:
           - "&7Coming soon."
         slot: 23
-
+        minigame-id: game12
+        left_click:
+          - "rga:join_minigame game12"
+        right_click:
+          - "rga:join_minigame game12"
       game13:
         material: STONE
         name: "&8&lMinigame 13"
         lore:
           - "&7Coming soon."
         slot: 24
-
+        minigame-id: game13
+        left_click:
+          - "rga:join_minigame game13"
+        right_click:
+          - "rga:join_minigame game13"
       game14:
         material: STONE
         name: "&8&lMinigame 14"
         lore:
           - "&7Coming soon."
         slot: 25
-
+        minigame-id: game14
+        left_click:
+          - "rga:join_minigame game14"
+        right_click:
+          - "rga:join_minigame game14"
       game15:
         material: STONE
         name: "&8&lMinigame 15"
         lore:
           - "&7Coming soon."
         slot: 28
+        minigame-id: game15
+        left_click:
+          - "rga:join_minigame game15"
+        right_click:
+          - "rga:join_minigame game15"
