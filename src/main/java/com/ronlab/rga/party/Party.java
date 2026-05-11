@@ -11,12 +11,10 @@ public class Party {
     private final UUID id;
     private final String minigameId;
     private final Minigame minigame;
-    private final UUID leaderUuid;
+    private UUID leaderUuid;
     private final List<UUID> members;
     private final Set<UUID> readyPlayers;
     private State state;
-
-    // Set when game starts — the world name(s) created for this party
     private String activeWorldName;
 
     public Party(UUID leaderUuid, Minigame minigame) {
@@ -58,6 +56,11 @@ public class Party {
 
     public boolean isFull() {
         return members.size() >= minigame.getMaxPlayers();
+    }
+
+    // Leader transfer
+    public void setLeader(UUID uuid) {
+        this.leaderUuid = uuid;
     }
 
     public UUID getId() { return id; }
