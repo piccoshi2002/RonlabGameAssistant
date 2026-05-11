@@ -190,8 +190,9 @@ public class PartyManager implements Listener {
             party.setActiveWorldName(worldName);
 
             if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
+                // Register all three dimensions as a shared inventory group
                 plugin.getInventoryManager().addTemporaryGroup(worldName,
-                        List.of(worldName, worldName + "_nether", worldName + "_the_end"));
+                        List.of(worldName, worldName + "_the_nether", worldName + "_the_end"));
             }
 
             World world = Bukkit.getWorld(worldName);
@@ -300,6 +301,9 @@ public class PartyManager implements Listener {
 
         if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
             plugin.getInventoryManager().removeTemporaryGroup(worldName);
+            // Also remove nether and end dimension entries
+            plugin.getInventoryManager().removeTemporaryGroup(worldName + "_the_nether");
+            plugin.getInventoryManager().removeTemporaryGroup(worldName + "_the_end");
         }
 
         for (UUID uuid : party.getMembers()) {
