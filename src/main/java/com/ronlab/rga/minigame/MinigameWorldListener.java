@@ -7,9 +7,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 
 public class MinigameWorldListener implements Listener {
 
@@ -26,7 +26,6 @@ public class MinigameWorldListener implements Listener {
         Player player = event.getPlayer();
         String currentWorld = player.getWorld().getName();
 
-        // Only handle players in minigame worlds
         if (!isMinigameWorld(currentWorld)) return;
 
         String baseName = getBaseName(currentWorld);
@@ -36,17 +35,16 @@ public class MinigameWorldListener implements Listener {
 
         if (cause == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL) {
             if (currentWorld.equals(baseName)) {
-                // Overworld → Nether: redirect to minigame nether
+                // Overworld → Nether
                 World nether = Bukkit.getWorld(baseName + "_the_nether");
                 if (nether != null) {
                     event.setTo(new Location(nether,
                             player.getLocation().getX() / 8,
                             player.getLocation().getY(),
                             player.getLocation().getZ() / 8));
-                    // Let Paper handle portal frame creation
                 }
             } else if (currentWorld.equals(baseName + "_the_nether")) {
-                // Nether → Overworld: redirect to minigame overworld
+                // Nether → Overworld
                 World overworld = Bukkit.getWorld(baseName);
                 if (overworld != null) {
                     event.setTo(new Location(overworld,
@@ -57,13 +55,13 @@ public class MinigameWorldListener implements Listener {
             }
         } else if (cause == PlayerTeleportEvent.TeleportCause.END_PORTAL) {
             if (currentWorld.equals(baseName)) {
-                // Overworld → End: redirect to minigame end
+                // Overworld → End
                 World end = Bukkit.getWorld(baseName + "_the_end");
                 if (end != null) {
                     event.setTo(end.getSpawnLocation());
                 }
             } else if (currentWorld.equals(baseName + "_the_end")) {
-                // End exit portal → minigame overworld
+                // End exit portal → Overworld
                 World overworld = Bukkit.getWorld(baseName);
                 if (overworld != null) {
                     event.setTo(overworld.getSpawnLocation());
@@ -84,7 +82,6 @@ public class MinigameWorldListener implements Listener {
         String baseName = getBaseName(currentWorld);
         if (baseName == null) return;
 
-        // Always respawn at the minigame overworld spawn
         World overworld = Bukkit.getWorld(baseName);
         if (overworld != null) {
             event.setRespawnLocation(overworld.getSpawnLocation());
@@ -93,12 +90,8 @@ public class MinigameWorldListener implements Listener {
 
     // ── Helpers ──────────────────────────────────────────────────
 
-    /**
-     * Returns true if the world name belongs to an active minigame.
-     */
     private boolean isMinigameWorld(String worldName) {
         if (!worldName.startsWith("minigame_")) return false;
-        // Check active parties
         for (Party party : plugin.getPartyManager().getActiveParties().values()) {
             String active = party.getActiveWorldName();
             if (active == null) continue;
@@ -111,10 +104,6 @@ public class MinigameWorldListener implements Listener {
         return false;
     }
 
-    /**
-     * Given any minigame world name (overworld, nether, or end),
-     * returns the base overworld name.
-     */
     private String getBaseName(String worldName) {
         for (Party party : plugin.getPartyManager().getActiveParties().values()) {
             String active = party.getActiveWorldName();
