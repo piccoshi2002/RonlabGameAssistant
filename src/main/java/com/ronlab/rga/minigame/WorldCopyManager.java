@@ -19,27 +19,56 @@ public class WorldCopyManager {
     }
 
     /**
-     * Creates a fresh vanilla world set with settings from the minigame config.
-     * Returns the overworld name, or null on failure.
+     * Creates a fresh set of three linked vanilla worlds (overworld, nether, end).
+     * Returns the base world name, or null on failure.
      */
     public String createVanillaWorld(Minigame minigame) {
-        String worldName = "minigame_" + minigame.getId() + "_"
+        String baseName = "minigame_" + minigame.getId() + "_"
                 + UUID.randomUUID().toString().substring(0, 8);
 
-        WorldCreator creator = new WorldCreator(worldName);
-        creator.environment(World.Environment.NORMAL);
-        creator.generateStructures(true);
+        String overworldName = baseName;
+        String netherName    = baseName + "_the_nether";
+        String endName       = baseName + "_the_end";
 
-        World world = Bukkit.createWorld(creator);
-        if (world == null) {
-            plugin.getLogger().severe("Failed to create vanilla world for minigame: "
-                    + minigame.getId());
+        // ── Overworld ─────────────────────────────────────────────
+        WorldCreator overworldCreator = new WorldCreator(overworldName);
+        overworldCreator.environment(World.Environment.NORMAL);
+        overworldCreator.generateStructures(true);
+        World overworld = Bukkit.createWorld(overworldCreator);
+        if (overworld == null) {
+            plugin.getLogger().severe("Failed to create overworld for minigame: " + minigame.getId());
             return null;
         }
+        applyMinigameSettings(overworld, minigame);
 
-        applyMinigameSettings(world, minigame);
-        plugin.getLogger().info("Created vanilla minigame world: " + worldName);
-        return worldName;
+        // ── Nether ────────────────────────────────────────────────
+        WorldCreator netherCreator = new WorldCreator(netherName);
+        netherCreator.environment(World.Environment.NETHER);
+        netherCreator.generateStructures(true);
+        World nether = Bukkit.createWorld(netherCreator);
+        if (nether == null) {
+            plugin.getLogger().severe("Failed to create nether for minigame: " + minigame.getId());
+            Bukkit.unloadWorld(overworld, false);
+            return null;
+        }
+        applyMinigameSettings(nether, minigame);
+
+        // ── End ───────────────────────────────────────────────────
+        WorldCreator endCreator = new WorldCreator(endName);
+        endCreator.environment(World.Environment.THE_END);
+        endCreator.generateStructures(true);
+        World end = Bukkit.createWorld(endCreator);
+        if (end == null) {
+            plugin.getLogger().severe("Failed to create end for minigame: " + minigame.getId());
+            Bukkit.unloadWorld(overworld, false);
+            Bukkit.unloadWorld(nether, false);
+            return null;
+        }
+        applyMinigameSettings(end, minigame);
+
+        plugin.getLogger().info("Created vanilla minigame worlds: "
+                + overworldName + ", " + netherName + ", " + endName);
+        return baseName;
     }
 
     /**
@@ -58,7 +87,6 @@ public class WorldCopyManager {
         }
 
         File destination = new File(templateFolder.getParentFile(), newWorldName);
-
         try {
             copyFolder(templateFolder.toPath(), destination.toPath());
         } catch (IOException e) {
@@ -84,15 +112,12 @@ public class WorldCopyManager {
     }
 
     /**
-     * Applies world settings defined in the minigame config to a world.
+     * Applies world settings from the minigame config to a world.
      */
     @SuppressWarnings("unchecked")
-    private void applyMinigameSettings(World world, Minigame minigame) {
+    public void applyMinigameSettings(World world, Minigame minigame) {
         world.setPVP(minigame.isPvp());
         world.setDifficulty(minigame.getDifficulty());
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
-        world.setGameRule(GameRule.DO_WEATHER_CYCLE, true);
-        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
 
         // Apply configured gamerules
         for (Map.Entry<String, String> entry : minigame.getGamerules().entrySet()) {
@@ -102,7 +127,6 @@ public class WorldCopyManager {
                         + "' in minigame " + minigame.getId() + ". Skipping.");
                 continue;
             }
-
             String value = entry.getValue();
             if (rule.getType() == Boolean.class) {
                 world.setGameRule((GameRule<Boolean>) rule, Boolean.parseBoolean(value));
@@ -118,14 +142,14 @@ public class WorldCopyManager {
     }
 
     /**
-     * Unloads and deletes a minigame world and its nether/end if vanilla type.
+     * Unloads and deletes minigame world(s).
      */
-    public void cleanupWorld(String worldName, boolean isVanilla) {
+    public void cleanupWorld(String baseName, boolean isVanilla) {
         if (isVanilla) {
-            unloadAndDelete(worldName + "_nether");
-            unloadAndDelete(worldName + "_the_end");
+            unloadAndDelete(baseName + "_the_end");
+            unloadAndDelete(baseName + "_the_nether");
         }
-        unloadAndDelete(worldName);
+        unloadAndDelete(baseName);
     }
 
     private void unloadAndDelete(String worldName) {
@@ -139,7 +163,6 @@ public class WorldCopyManager {
             }
             Bukkit.unloadWorld(world, false);
         }
-
         File folder = findWorldFolder(worldName);
         if (folder != null && folder.exists()) {
             deleteFolder(folder);
@@ -149,10 +172,9 @@ public class WorldCopyManager {
 
     // ── Folder utilities ─────────────────────────────────────────
 
-    private File findWorldFolder(String worldName) {
+    public File findWorldFolder(String worldName) {
         File topLevel = new File(Bukkit.getWorldContainer(), worldName);
         if (topLevel.exists()) return topLevel;
-
         File[] topFolders = Bukkit.getWorldContainer().listFiles(File::isDirectory);
         if (topFolders == null) return null;
         for (File worldFolder : topFolders) {
@@ -176,7 +198,6 @@ public class WorldCopyManager {
                 Files.createDirectories(destination.resolve(source.relativize(dir)));
                 return FileVisitResult.CONTINUE;
             }
-
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                     throws IOException {
