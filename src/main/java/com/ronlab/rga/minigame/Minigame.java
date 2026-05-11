@@ -1,8 +1,11 @@
 package com.ronlab.rga.minigame;
 
+import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 
 import java.util.List;
+import java.util.Map;
 
 public class Minigame {
 
@@ -18,9 +21,16 @@ public class Minigame {
     private final String templateWorld;
     private final List<String> startCommands;
 
+    // World settings applied when the game world is created
+    private final GameMode gameMode;
+    private final boolean pvp;
+    private final Difficulty difficulty;
+    private final Map<String, String> gamerules;
+
     public Minigame(String id, String name, Material displayItem, List<String> displayLore,
                     int maxPlayers, int minPlayers, WorldType worldType, String templateWorld,
-                    List<String> startCommands) {
+                    List<String> startCommands, GameMode gameMode, boolean pvp,
+                    Difficulty difficulty, Map<String, String> gamerules) {
         this.id = id;
         this.name = name;
         this.displayItem = displayItem;
@@ -30,6 +40,10 @@ public class Minigame {
         this.worldType = worldType;
         this.templateWorld = templateWorld;
         this.startCommands = startCommands;
+        this.gameMode = gameMode;
+        this.pvp = pvp;
+        this.difficulty = difficulty;
+        this.gamerules = gamerules;
     }
 
     public String getId() { return id; }
@@ -41,4 +55,8 @@ public class Minigame {
     public WorldType getWorldType() { return worldType; }
     public String getTemplateWorld() { return templateWorld; }
     public List<String> getStartCommands() { return startCommands; }
+    public GameMode getGameMode() { return gameMode; }
+    public boolean isPvp() { return pvp; }
+    public Difficulty getDifficulty() { return difficulty; }
+    public Map<String, String> getGamerules() { return gamerules; }
 }
