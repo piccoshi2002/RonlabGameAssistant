@@ -232,20 +232,23 @@ public class PartyManager implements Listener {
     private void executeStartCommands(List<String> commands, String worldName,
                                       String leaderName, String allPlayers,
                                       List<String> playerNames, Player leaderPlayer) {
+        // %second% is the first non-leader player in join order
+        String secondName = playerNames.size() >= 2 ? playerNames.get(1) : "";
+
         for (String command : commands) {
             if (command.startsWith("player-each:")) {
                 // Run once per player as console, %player% = each player's name
                 String cmd = command.substring("player-each:".length()).trim();
                 for (String playerName : playerNames) {
                     String resolved = resolveCommand(cmd, worldName, leaderName,
-                            allPlayers, playerName);
+                            allPlayers, playerName, secondName);
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
                 }
             } else if (command.startsWith("leader:")) {
                 // Run as the leader player — opens GUIs and player-only commands
                 String cmd = command.substring("leader:".length()).trim();
                 String resolved = resolveCommand(cmd, worldName, leaderName,
-                        allPlayers, leaderName);
+                        allPlayers, leaderName, secondName);
                 if (leaderPlayer != null) {
                     leaderPlayer.performCommand(resolved);
                 } else {
@@ -257,27 +260,38 @@ public class PartyManager implements Listener {
                 String cmd = command.startsWith("console:")
                         ? command.substring("console:".length()).trim()
                         : command.trim();
-                String resolved = resolveCommand(cmd, worldName, leaderName, allPlayers, "");
+                String resolved = resolveCommand(cmd, worldName, leaderName, allPlayers, "", secondName);
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), resolved);
             }
         }
     }
 
     private String resolveCommand(String command, String worldName,
-                                   String leaderName, String allPlayers, String playerName) {
+                                   String leaderName, String allPlayers,
+                                   String playerName, String secondName) {
         return command
                 .replace("%world%", worldName)
                 .replace("%leader%", leaderName)
                 .replace("%players%", allPlayers)
+                .replace("%second%", secondName)
                 .replace("%player%", playerName);
     }
 
     // ── Game End ─────────────────────────────────────────────────
 
     public void concludeGame(String worldName) {
+        // Resolve to base world name in case a dimension suffix was passed
+        // e.g. minigame_tag_abc_the_nether -> minigame_tag_abc
+        String baseName = worldName;
+        if (baseName.endsWith("_the_nether")) {
+            baseName = baseName.substring(0, baseName.length() - "_the_nether".length());
+        } else if (baseName.endsWith("_the_end")) {
+            baseName = baseName.substring(0, baseName.length() - "_the_end".length());
+        }
+
         Party party = null;
         for (Party p : activeParties.values()) {
-            if (worldName.equals(p.getActiveWorldName())) {
+            if (baseName.equals(p.getActiveWorldName())) {
                 party = p;
                 break;
             }
@@ -287,6 +301,9 @@ public class PartyManager implements Listener {
             plugin.getLogger().warning("No party found for world: " + worldName);
             return;
         }
+
+        // Use the resolved base name going forward
+        worldName = baseName;
 
         Minigame minigame = party.getMinigame();
         World hub = Bukkit.getWorld(plugin.getConfigManager().getHubWorld());
