@@ -340,12 +340,13 @@ public class PartyManager implements Listener {
         }
         activeParties.remove(party.getMinigameId());
 
-        // Delay world cleanup to allow dead players to respawn first (5 seconds)
+        // Capture member list before lambda since party reference is not final
+        List<UUID> finalMembers = new ArrayList<>(party.getMembers());
         String finalWorldName = worldName;
         boolean isVanilla = minigame.getWorldType() == Minigame.WorldType.VANILLA;
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             // Clear concluded player flags
-            for (UUID uuid : party.getMembers()) {
+            for (UUID uuid : finalMembers) {
                 concludedPlayers.remove(uuid);
             }
             worldCopyManager.cleanupWorld(finalWorldName, isVanilla);
