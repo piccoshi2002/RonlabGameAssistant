@@ -7,6 +7,7 @@ import org.bukkit.advancement.AdvancementProgress;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.Collection;
 
 public class AdvancementManager {
 
@@ -31,7 +32,7 @@ public class AdvancementManager {
             Advancement advancement = iterator.next();
             AdvancementProgress progress = player.getAdvancementProgress(advancement);
 
-            Set<String> awarded = progress.getAwardedCriteria();
+            Collection<String> awarded = progress.getAwardedCriteria();
             if (!awarded.isEmpty()) {
                 // Save the awarded criteria for this advancement
                 saved.put(advancement.getKey().toString(), new HashSet<>(awarded));
