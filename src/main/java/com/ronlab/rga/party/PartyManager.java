@@ -316,6 +316,21 @@ public class PartyManager implements Listener {
         Minigame minigame = party.getMinigame();
         World hub = Bukkit.getWorld(plugin.getConfigManager().getHubWorld());
 
+        // Fire conclude commands before cleanup so game plugin can do its own teardown
+        if (!minigame.getConcludeCommands().isEmpty()) {
+            // Build player info for placeholders
+            List<String> playerNames = new ArrayList<>();
+            Player leaderPlayer = Bukkit.getPlayer(party.getLeaderUuid());
+            String leaderName = leaderPlayer != null ? leaderPlayer.getName() : "";
+            for (UUID uuid : party.getMembers()) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) playerNames.add(p.getName());
+            }
+            String allPlayers = String.join(",", playerNames);
+            executeStartCommands(minigame.getConcludeCommands(), worldName,
+                    leaderName, allPlayers, playerNames, leaderPlayer);
+        }
+
         // Remove inventory groups immediately so dead players respawn with Hub inventory
         if (minigame.getWorldType() == Minigame.WorldType.VANILLA) {
             plugin.getInventoryManager().removeTemporaryGroup(worldName);
