@@ -94,7 +94,12 @@ public class WorldCopyManager {
             return null;
         }
 
+        // Delete files that would cause Paper to detect this as a duplicate world
         new File(destination, "session.lock").delete();
+        new File(destination, "uid.dat").delete();
+
+        // Also delete uid.dat from dimension subfolders if present
+        deleteDuplicateFiles(destination);
 
         WorldCreator creator = new WorldCreator(newWorldName);
         creator.environment(World.Environment.NORMAL);
@@ -206,6 +211,23 @@ public class WorldCopyManager {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    /**
+     * Recursively deletes uid.dat and session.lock files from a world folder
+     * and all its subfolders to prevent Paper duplicate world detection.
+     */
+    private void deleteDuplicateFiles(File folder) {
+        File[] files = folder.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                deleteDuplicateFiles(file);
+            } else if (file.getName().equals("uid.dat")
+                    || file.getName().equals("session.lock")) {
+                file.delete();
+            }
+        }
     }
 
     private void deleteFolder(File folder) {
