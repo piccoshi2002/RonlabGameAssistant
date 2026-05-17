@@ -212,46 +212,6 @@ public class WorldCopyManager {
     }
 
     /**
-     * Patches the level.dat in a copied world folder to assign a new unique
-     * world name and clear the stored UUID so Paper treats it as a new world.
-     */
-    private void patchLevelDat(File worldFolder, String newWorldName) {
-        File levelDat = new File(worldFolder, "level.dat");
-        if (!levelDat.exists()) {
-            // Check subdirectories — Paper 26.1 may store it deeper
-            File[] files = worldFolder.listFiles(File::isDirectory);
-            if (files != null) {
-                for (File sub : files) {
-                    File subLevel = new File(sub, "level.dat");
-                    if (subLevel.exists()) {
-                        levelDat = subLevel;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!levelDat.exists()) {
-            plugin.getLogger().warning("Could not find level.dat in copied world: " + newWorldName);
-            return;
-        }
-
-        try {
-            // Use Paper's NBT stream to read and modify level.dat
-            // We delete the file and let Paper regenerate it fresh on world load
-            // This is the safest approach — avoids NBT parsing complexity
-            levelDat.delete();
-            File levelDatOld = new File(levelDat.getParentFile(), "level.dat_old");
-            if (levelDatOld.exists()) levelDatOld.delete();
-            plugin.getLogger().info("Removed level.dat from copied world '" + newWorldName
-                    + "' — Paper will regenerate it on load.");
-        } catch (Exception e) {
-            plugin.getLogger().severe("Failed to patch level.dat for " + newWorldName
-                    + ": " + e.getMessage());
-        }
-    }
-
-    /**
      * Recursively deletes uid.dat and session.lock files from a world folder
      * and all its subfolders to prevent Paper duplicate world detection.
      */
@@ -263,9 +223,10 @@ public class WorldCopyManager {
                 deleteDuplicateFiles(file);
             } else if (file.getName().equals("uid.dat")
                     || file.getName().equals("session.lock")
-                    || file.getName().equals("metadata.dat")
-                    || file.getName().equals("level.dat")
-                    || file.getName().equals("level.dat_old")) {
+                    || file.getName().equals("metadata.dat")) {
+                // Only delete metadata.dat — this is what Paper 26.1 uses for
+                // duplicate world detection. level.dat is preserved so world
+                // settings like command blocks carry over from the template.
                 file.delete();
                 plugin.getLogger().info("Deleted " + file.getName()
                         + " from copied world to prevent duplicate detection.");
