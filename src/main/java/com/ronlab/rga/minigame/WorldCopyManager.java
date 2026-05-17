@@ -94,12 +94,10 @@ public class WorldCopyManager {
             return null;
         }
 
-        // Delete session.lock and uid.dat to prevent file locking conflicts
+        // Delete metadata.dat, level.dat, uid.dat and session.lock recursively
+        // Paper 26.1 stores world UUID in data/paper/metadata.dat inside each dimension
+        // Deleting these forces Paper to regenerate fresh identifiers on load
         deleteDuplicateFiles(destination);
-
-        // Patch level.dat to assign a new unique world UUID
-        // This prevents Paper's duplicate world detection
-        patchLevelDat(destination, newWorldName);
 
         WorldCreator creator = new WorldCreator(newWorldName);
         creator.environment(World.Environment.NORMAL);
@@ -264,8 +262,13 @@ public class WorldCopyManager {
             if (file.isDirectory()) {
                 deleteDuplicateFiles(file);
             } else if (file.getName().equals("uid.dat")
-                    || file.getName().equals("session.lock")) {
+                    || file.getName().equals("session.lock")
+                    || file.getName().equals("metadata.dat")
+                    || file.getName().equals("level.dat")
+                    || file.getName().equals("level.dat_old")) {
                 file.delete();
+                plugin.getLogger().info("Deleted " + file.getName()
+                        + " from copied world to prevent duplicate detection.");
             }
         }
     }
